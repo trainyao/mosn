@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"mosn.io/mosn/pkg/log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -491,6 +492,7 @@ func (st *stream) mprocessTrailerHeaders(ctx context.Context, f *MetaHeadersFram
 
 // processRequest processes headers frame and build http.Request for Http2 Server
 func (sc *MServerConn) processRequest(st *stream, f *MetaHeadersFrame) (*http.Request, error) {
+	log.DefaultLogger.Infof("[train] %s", f.PseudoValue("train"))
 	rp := requestParam{
 		method:    f.PseudoValue("method"),
 		scheme:    f.PseudoValue("scheme"),
@@ -1615,6 +1617,11 @@ func (fr *MFramer) readFrameHeader(ctx context.Context, data buffer.IoBuffer, of
 		return FrameHeader{}, ErrAGAIN
 	}
 	buf := data.Bytes()[off:]
+	t := FrameType(buf[3])
+	if t == FrameHeaders {
+
+	}
+
 	return FrameHeader{
 		Length:   (uint32(buf[0])<<16 | uint32(buf[1])<<8 | uint32(buf[2])),
 		Type:     FrameType(buf[3]),
@@ -1741,6 +1748,11 @@ func (fr *MFramer) ReadFrame(ctx context.Context, data buffer.IoBuffer, off int)
 	msize := 0
 	if fh.Type == FrameHeaders && fr.ReadMetaHeaders != nil {
 		f, msize, err = fr.readMetaFrame(ctx, f.(*HeadersFrame), data, off+size)
+		//if f != nil {
+		//	for _, h := range f.(*MetaHeadersFrame).Fields {
+		//		log.DefaultLogger.Infof("[train] %s %s", h.Name, h.Value)
+		//	}
+		//}
 
 		if err != nil {
 			fr.lastFrame = last

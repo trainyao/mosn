@@ -19,6 +19,7 @@ package v2
 
 import (
 	"encoding/json"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -397,4 +398,80 @@ func TestServiceRegistryInfoUnmarshal(t *testing.T) {
 		info.ServicePubInfo[0].Pub.PubData == "foo") {
 		t.Error("service registry info failed")
 	}
+}
+
+func TestMaglevConfigUnmarshal(t *testing.T) {
+	config := `{
+		"type": "header",
+		"hash_factor": {
+			"key": "123"
+		}
+	}`
+
+	headerConfig := &LBMaglevConfig{}
+	err := json.Unmarshal([]byte(config), headerConfig)
+	if !assert.NoErrorf(t, err, "error should be nil, get %+v", err) {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, MaglevType_header, headerConfig.Type,
+		"header key should be %s, get %s", MaglevType_header, headerConfig.Type) {
+		t.FailNow()
+	}
+	if c, ok := headerConfig.HashFactor.(*HeaderMaglevHashFactor); !ok {
+		t.Fatalf("hash factor should be HeaderMaglevHashFactor type")
+	} else {
+		if !assert.Equalf(t, "123", c.HeaderKey, "header key should be 123, get %s", c.HeaderKey) {
+			t.FailNow()
+		}
+	}
+
+	config2 := `{
+		"type": "http_cookie",
+		"hash_factor": {
+			"name": "name",
+			"path": "path",
+			"ttl": "5s"
+		}
+	}`
+
+	cookieConfig := &LBMaglevConfig{}
+	err = json.Unmarshal([]byte(config2), cookieConfig)
+	if !assert.NoErrorf(t, err, "error should be nil, get %+v", err) {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, MaglevType_http_cookie, cookieConfig.Type,
+		"header key should be %s, get %s", MaglevType_http_cookie, cookieConfig.Type) {
+		t.FailNow()
+	}
+	if c, ok := cookieConfig.HashFactor.(*HttpCookieMaglevHashFactor); !ok {
+		t.Fatalf("hash factor should be HttpCookieMaglevHashFactor type")
+	} else {
+		if !assert.Equalf(t, "name", c.CookieName, "header key should be name, get %s", c.CookieName) {
+			t.FailNow()
+		}
+		if !assert.Equalf(t, "path", c.CookiePath, "header key should be path, get %s", c.CookiePath) {
+			t.FailNow()
+		}
+		if !assert.Equalf(t, 5*time.Second, c.TTL, "header key should be 5s, get %+v", c.TTL) {
+			t.FailNow()
+		}
+	}
+
+	config3 := `{
+		"type": "source_ip"
+	}`
+
+	sourceIPConfig := &LBMaglevConfig{}
+	err = json.Unmarshal([]byte(config3), sourceIPConfig)
+	if !assert.NoErrorf(t, err, "error should be nil, get %+v", err) {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, MaglevType_source_IP, sourceIPConfig.Type,
+		"header key should be %s, get %s", MaglevType_source_IP, sourceIPConfig.Type) {
+		t.FailNow()
+	}
+	if _, ok := sourceIPConfig.HashFactor.(*SourceIPMaglevHashFactor); !ok {
+		t.Fatalf("hash factor should be SourceIPMaglevHashFactor type")
+	}
+
 }

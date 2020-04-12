@@ -193,6 +193,9 @@ type ClusterInfo interface {
 
 	// LbOriDstInfo returns the load balancer oridst config
 	LbOriDstInfo() LBOriDstInfo
+
+	// LbMaglevInfo returns the load balancer oridst config
+	LbMaglevInfo() LBMaglevInfo
 }
 
 // ResourceManager manages different types of Resource
@@ -323,6 +326,36 @@ type LBOriDstInfo interface {
 
 	// GET header name
 	GetHeader() string
+}
+
+type LBMaglevInfo interface {
+	// MaglevInfo type
+	Type() v2.MaglevType
+}
+
+type LBHeaderMaglevInfo struct {
+	Key string
+}
+
+func (m *LBHeaderMaglevInfo) Type() v2.MaglevType {
+	return v2.MaglevType_header
+}
+
+type LBHttpCookieMaglevInfo struct {
+	Name string
+	Path string
+	TTL  time.Duration
+}
+
+func (m *LBHttpCookieMaglevInfo) Type() v2.MaglevType {
+	return v2.MaglevType_http_cookie
+}
+
+type LBSourceIPMaglevInfo struct {
+}
+
+func (m *LBSourceIPMaglevInfo) Type() v2.MaglevType {
+	return v2.MaglevType_source_IP
 }
 
 // SortedHosts is an implementation of sort.Interface

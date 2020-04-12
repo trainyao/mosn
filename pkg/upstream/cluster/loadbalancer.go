@@ -18,11 +18,19 @@
 package cluster
 
 import (
+	"encoding/binary"
+	"fmt"
+	"github.com/dchest/siphash"
 	"math/rand"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
+	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/dgryski/go-maglev"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
@@ -45,6 +53,7 @@ func init() {
 	}
 	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
+	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 }
 
 func NewLoadBalancer(lbType types.LoadBalancerType, hosts types.HostSet) types.LoadBalancer {
@@ -111,7 +120,6 @@ func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(hosts types.Ho
 		rrIndex: idx,
 	}
 }
-
 func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	targets := lb.hosts.HealthyHosts()
 	if len(targets) == 0 {
@@ -127,6 +135,162 @@ func (lb *roundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriter
 
 func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.Hosts())
+}
+
+func NewMaglevInfo(config *v2.LBMaglevConfig) (i types.LBMaglevInfo) {
+	switch config.Type {
+	case v2.MaglevType_header:
+		if f, ok := config.HashFactor.(*v2.HeaderMaglevHashFactor); !ok {
+			log.Proxy.Warnf(nil, "header %s and hash factor not match", config.Type)
+			return nil
+		} else {
+			i = &types.LBHeaderMaglevInfo{Key: f.HeaderKey}
+		}
+	case v2.MaglevType_http_cookie:
+		if f, ok := config.HashFactor.(*v2.HttpCookieMaglevHashFactor); !ok {
+			log.Proxy.Warnf(nil, "header %s and hash factor not match", config.Type)
+			return nil
+		} else {
+			i = &types.LBHttpCookieMaglevInfo{
+				Name: f.CookieName,
+				Path: f.CookiePath,
+				TTL:  f.TTL,
+			}
+		}
+	case v2.MaglevType_source_IP:
+		if _, ok := config.HashFactor.(*v2.SourceIPMaglevHashFactor); !ok {
+			log.Proxy.Warnf(nil, "header %s and hash factor not match", config.Type)
+			return nil
+		} else {
+			i = &types.LBSourceIPMaglevInfo{}
+		}
+	default:
+		log.Proxy.Warnf(nil, "not found maglev factor type %s", config.Type)
+	}
+
+	return nil
+}
+
+func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
+	hosts := []string{}
+	for _, h := range set.HealthyHosts() {
+		hosts = append(hosts, h.AddressString())
+	}
+
+	log.DefaultLogger.Infof("[train] in new %s", strings.Join(hosts, ","))
+
+	healthyHosts := set.HealthyHosts()
+	names := []string{}
+
+	var table *maglev.Table
+	for _, host := range healthyHosts {
+		names = append(names, host.Hostname())
+	}
+	if len(names) != 0 {
+		table = maglev.New(names, maglev.SmallM)
+	}
+
+	return &maglevLoadBalancer{
+		hosts:        set,
+		healthyHosts: healthyHosts,
+		maglev:       table,
+		rand:         rand.NewSource(int64(time.Now().Nanosecond())),
+	}
+}
+
+type maglevLoadBalancer struct {
+	// TODO train 确定 host 变化会不会动态变化 hostset.healthyhosts
+	mutex        sync.Mutex
+	hosts        types.HostSet
+	healthyHosts []types.Host
+	maglev       *maglev.Table
+	rand         rand.Source
+}
+
+func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	if lb.maglev == nil {
+		return nil
+	}
+
+	c := context.DownstreamCluster().LbMaglevInfo()
+	hash := lb.generateChooseHostHash(context, c)
+
+	// TODO train 确定 长连接 upstream 变化
+	// TODO train 确定 upstream 下架之后变化
+	//remote := context.DownstreamConnection().RemoteAddr()
+
+	lb.mutex.Lock()
+	defer lb.mutex.Unlock()
+	if len(lb.healthyHosts) == 0 {
+		return nil
+	}
+
+	//hash := getHashByAddr(remote)
+	//hash := siphash.Hash(0xbeefcafebabedead, 0, []byte("train123"))
+	//hash :=
+	index := lb.maglev.Lookup(hash)
+
+	log.Proxy.Infof(nil, "[lb][maglev][train] network %s addr %s get index %d host %s %s",
+		"train123", "train123", index, lb.healthyHosts[index].Hostname(), lb.healthyHosts[index].AddressString())
+
+	//log.Proxy.Debugf(nil, "[lb][maglev][train] network %s addr %s get index %d host %s %s",
+	//	remote.Network(), remote.String(), index, lb.healthyHosts[index].Hostname(), lb.healthyHosts[index].AddressString())
+
+	return lb.healthyHosts[index]
+}
+
+func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerContext, info types.LBMaglevInfo) uint64 {
+	switch info.(type) {
+	case *types.LBHeaderMaglevInfo:
+		headerKey := info.(*types.LBHeaderMaglevInfo).Key
+		if headerValue, found := context.DownstreamHeaders().Get(headerKey); found && headerValue != "" {
+			return getHashByString(headerValue)
+		} else {
+			return uint64(lb.rand.Int63())
+		}
+	case *types.LBSourceIPMaglevInfo:
+		return getHashByAddr(context.DownstreamConnection().RemoteAddr())
+	case *types.LBHttpCookieMaglevInfo:
+
+	default:
+		return uint64(lb.rand.Int63())
+	}
+
+}
+
+func (lb *maglevLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+	return lb.HostNum(metadata) > 0
+}
+
+func (lb *maglevLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+	return len(lb.healthyHosts)
+}
+
+func getHashByAddr(addr net.Addr) (hash uint64) {
+	if tcpaddr, ok := addr.(*net.TCPAddr); ok {
+		if len(tcpaddr.IP) == 16 || len(tcpaddr.IP) == 4 {
+			var tmp uint32
+
+			if len(tcpaddr.IP) == 16 {
+				tmp = binary.BigEndian.Uint32(tcpaddr.IP[12:16])
+			} else {
+				tmp = binary.BigEndian.Uint32(tcpaddr.IP)
+			}
+			hash = uint64(tmp)
+
+			return
+		}
+	}
+
+	return getHashByString(fmt.Sprintf("%s", addr.String()))
+}
+
+func getHashByString(str string) uint64 {
+	return siphash.Hash(0xbeefcafebabedead, 0, []byte(str))
+}
+
+func getRandomHash(source rand.Source) uint64 {
+	return rand.NewSource(int64(time.Now().Nanosecond()))
 }
 
 // TODO:

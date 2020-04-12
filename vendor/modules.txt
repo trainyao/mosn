@@ -37,6 +37,10 @@ github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
 github.com/cncf/udpa/go/udpa/annotations
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/dchest/siphash v1.2.1
+github.com/dchest/siphash
+# github.com/dgryski/go-maglev v0.0.0-20170623041913-a123f15678dd
+github.com/dgryski/go-maglev
 # github.com/dubbogo/gost v1.1.1
 github.com/dubbogo/gost/bytes
 github.com/dubbogo/gost/math/big

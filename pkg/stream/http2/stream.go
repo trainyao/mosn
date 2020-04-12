@@ -295,11 +295,13 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		header.Set(protocol.MosnHeaderMethod, h2s.Request.Method)
 		header.Set(protocol.MosnHeaderHostKey, h2s.Request.Host)
 		header.Set(protocol.MosnHeaderPathKey, h2s.Request.URL.Path)
+		header.Set(protocol.MosnHeaderTrain, h2s.Request.Header.Get("train"))
 		if h2s.Request.URL.RawQuery != "" {
 			header.Set(protocol.MosnHeaderQueryStringKey, h2s.Request.URL.RawQuery)
 		}
 
-		log.Proxy.Debugf(stream.ctx, "http2 server header: %d, %+v", id, h2s.Request.Header)
+		//log.Proxy.Infof(stream.ctx, "train http2 server header: %d, %+v", id, h2s.Request.Header)
+		//log.Proxy.Infof(stream.ctx, "train %d, %+v\n\n", id, header.H)
 
 		if endStream {
 			stream.receiver.OnReceive(ctx, header, nil, nil)

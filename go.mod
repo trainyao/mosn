@@ -7,6 +7,9 @@ require (
 	github.com/apache/dubbo-go-hessian2 v1.3.0
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
+	github.com/davecgh/go-spew v1.1.1
+	github.com/dchest/siphash v1.2.1
+	github.com/dgryski/go-maglev v0.0.0-20170623041913-a123f15678dd
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/gogo/googleapis v1.3.2 // indirect
 	github.com/gogo/protobuf v1.3.1
@@ -20,6 +23,7 @@ require (
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
 	github.com/prometheus/common v0.6.0 // indirect
@@ -34,6 +38,7 @@ require (
 	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
 	google.golang.org/grpc v1.28.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
+	gopkg.in/yaml.v2 v2.2.4
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	mosn.io/api v0.0.0-20200313100800-96f82cd67746
 	mosn.io/pkg v0.0.0-20200306153343-5ed3dae838b4

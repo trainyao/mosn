@@ -32,6 +32,7 @@ const (
 	RoundRobin   LoadBalancerType = "LB_ROUNDROBIN"
 	Random       LoadBalancerType = "LB_RANDOM"
 	ORIGINAL_DST LoadBalancerType = "LB_ORIGINAL_DST"
+	Maglev       LoadBalancerType = "LB_MAGLEV"
 )
 
 // LoadBalancer is a upstream load balancer.

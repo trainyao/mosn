@@ -152,6 +152,9 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 	}
 	clusters := make([]*v2.Cluster, 0, len(xdsClusters))
 	for _, xdsCluster := range xdsClusters {
+		log.DefaultLogger.Infof("[train] %s %s %d", xdsCluster.GetName(), string(convertLbPolicy(xdsCluster.GetLbPolicy())),
+			int32(xdsCluster.GetLbPolicy()))
+
 		cluster := &v2.Cluster{
 			Name:                 xdsCluster.GetName(),
 			ClusterType:          convertClusterType(xdsCluster.GetType()),
@@ -997,11 +1000,13 @@ func convertLbPolicy(xdsLbPolicy xdsapi.Cluster_LbPolicy) v2.LbType {
 	case xdsapi.Cluster_ROUND_ROBIN:
 		return v2.LB_ROUNDROBIN
 	case xdsapi.Cluster_LEAST_REQUEST:
-	case xdsapi.Cluster_RING_HASH:
 	case xdsapi.Cluster_RANDOM:
 		return v2.LB_RANDOM
 	case xdsapi.Cluster_ORIGINAL_DST_LB:
 	case xdsapi.Cluster_MAGLEV:
+		return v2.LB_MAGLEV
+	case xdsapi.Cluster_RING_HASH:
+		return v2.LB_MAGLEV
 	}
 	//log.DefaultLogger.Fatalf("unsupported lb policy: %s, exchange to LB_RANDOM", xdsLbPolicy.String())
 	return v2.LB_RANDOM
