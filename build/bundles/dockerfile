@@ -1,0 +1,5 @@
+from mosnio/proxyv2:1.4.6-mosn
+
+
+COPY ./v0.10.0/binary/mosn /usr/local/bin/mosn
+RUN chmod +x /usr/local/bin/mosn

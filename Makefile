@@ -131,4 +131,7 @@ shell:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -ti -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} /bin/bash
 
-.PHONY: unit-test build image rpm upload shell
+.PHONY: unit-test build image rpm upload shell me
+
+me : build-local
+	docker build  build/bundles -f build/bundles/dockerfile -t mosnio/proxyv2:1.4.6-train
