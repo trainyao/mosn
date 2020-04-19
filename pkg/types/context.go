@@ -33,6 +33,7 @@ const (
 	ContextKeyBufferPoolCtx
 	ContextKeyAccessLogs
 	ContextOriRemoteAddr
+	ContextRemoteAddr
 	ContextKeyAcceptChan
 	ContextKeyAcceptBuffer
 	ContextKeyConnectionFd
@@ -42,6 +43,7 @@ const (
 	ContextKeyTraceId
 	ContextKeyVariables
 	ContextKeyDownStreamProtocol
+	ContextKeyDownStreamHeaders
 	ContextKeyEnd
 )
 

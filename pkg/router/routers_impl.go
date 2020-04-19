@@ -48,6 +48,7 @@ func (ri *routersImpl) MatchRoute(headers api.HeaderMap, randomValue uint64) api
 	}
 	virtualHost := ri.findVirtualHost(headers)
 	if virtualHost == nil {
+		log.DefaultLogger.Infof("[train] virtual host nil")
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no virtual host found")
 		}
@@ -55,6 +56,7 @@ func (ri *routersImpl) MatchRoute(headers api.HeaderMap, randomValue uint64) api
 	}
 	router := virtualHost.GetRouteFromEntries(headers, randomValue)
 	if router == nil {
+		log.DefaultLogger.Infof("[train] router")
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no route found")
 		}

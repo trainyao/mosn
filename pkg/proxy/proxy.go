@@ -20,6 +20,7 @@ package proxy
 import (
 	"container/list"
 	"context"
+	"mosn.io/mosn/pkg"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -122,6 +123,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+"%s", proxy.config.RouterConfigName)
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper
 	} else {

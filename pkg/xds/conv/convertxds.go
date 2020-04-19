@@ -19,7 +19,7 @@ package conv
 
 import (
 	"fmt"
-
+	"mosn.io/mosn/pkg/types"
 	"net"
 	"strings"
 	"time"
@@ -156,10 +156,11 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			int32(xdsCluster.GetLbPolicy()))
 
 		cluster := &v2.Cluster{
-			Name:                 xdsCluster.GetName(),
-			ClusterType:          convertClusterType(xdsCluster.GetType()),
-			LbType:               convertLbPolicy(xdsCluster.GetLbPolicy()),
-			LBSubSetConfig:       convertLbSubSetConfig(xdsCluster.GetLbSubsetConfig()),
+			Name:           xdsCluster.GetName(),
+			ClusterType:    convertClusterType(xdsCluster.GetType()),
+			LbType:         convertLbPolicy(xdsCluster.GetLbPolicy()),
+			LBSubSetConfig: convertLbSubSetConfig(xdsCluster.GetLbSubsetConfig()),
+			//LBMaglevConfig:       convertLbMaglevConfig(xdsCluster),
 			MaxRequestPerConn:    xdsCluster.GetMaxRequestsPerConnection().GetValue(),
 			ConnBufferLimitBytes: xdsCluster.GetPerConnectionBufferLimitBytes().GetValue(),
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
@@ -182,6 +183,11 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 
 	return clusters
 }
+
+//
+//func convertLbMaglevConfig(cluster *envoy_api_v2.Cluster) v2.LBMaglevConfig {
+//
+//}
 
 func ConvertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.Host {
 	if xdsEndpoint == nil {
@@ -841,6 +847,7 @@ func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 			ClusterName:      xdsRouteAction.GetCluster(),
 			ClusterHeader:    xdsRouteAction.GetClusterHeader(),
 			WeightedClusters: convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
+			HashPolicy:       convertHashPolicy(xdsRouteAction.GetHashPolicy()),
 			RetryPolicy:      convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
 			PrefixRewrite:    xdsRouteAction.GetPrefixRewrite(),
 			HostRewrite:      xdsRouteAction.GetHostRewrite(),
@@ -897,6 +904,37 @@ func convertWeightedClusters(xdsWeightedClusters *xdsroute.WeightedCluster) []v2
 		weightedClusters = append(weightedClusters, weightedCluster)
 	}
 	return weightedClusters
+}
+
+func convertHashPolicy(hashPolicy []*xdsroute.RouteAction_HashPolicy) []api.ConsistentHashCriteria {
+	hpReturn := make([]api.ConsistentHashCriteria, 0, len(hashPolicy))
+	for _, p := range hashPolicy {
+		if headerKey := p.GetHeader(); headerKey != nil {
+			hpReturn = append(hpReturn, &types.LBHeaderMaglevInfo{
+				Key: headerKey.HeaderName,
+			})
+
+			continue
+		}
+
+		if cookieConfig := p.GetCookie(); cookieConfig != nil {
+			hpReturn = append(hpReturn, &types.LBHttpCookieMaglevInfo{
+				Name: cookieConfig.Name,
+				Path: cookieConfig.Path,
+				TTL:  convertTimeDurPoint2TimeDur(cookieConfig.Ttl),
+			})
+
+			continue
+		}
+
+		if ip := p.GetConnectionProperties(); ip != nil {
+			hpReturn = append(hpReturn, &types.LBSourceIPMaglevInfo{})
+
+			continue
+		}
+	}
+
+	return hpReturn
 }
 
 func convertWeightedCluster(xdsWeightedCluster *xdsroute.WeightedCluster_ClusterWeight) v2.ClusterWeight {

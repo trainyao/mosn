@@ -44,7 +44,9 @@ func NewRouteHandlerChain(ctx context.Context, clusterManager types.ClusterManag
 
 func (hc *RouteHandlerChain) DoNextHandler() (types.ClusterSnapshot, api.Route) {
 	handler := hc.Next()
+
 	if handler == nil {
+		log.DefaultLogger.Infof("[train] nil return")
 		return nil, nil
 	}
 	snapshot, status := handler.IsAvailable(hc.ctx, hc.clusterManager)
@@ -61,6 +63,7 @@ func (hc *RouteHandlerChain) DoNextHandler() (types.ClusterSnapshot, api.Route) 
 }
 func (hc *RouteHandlerChain) Next() types.RouteHandler {
 	if hc.index >= len(hc.handlers) {
+		log.DefaultLogger.Infof("[train] index > len return")
 		return nil
 	}
 	h := hc.handlers[hc.index]

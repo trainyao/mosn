@@ -57,7 +57,8 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy) Proxy {
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		requestInfo:    network.NewRequestInfo(),
 		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
-		ctx:            ctx,
+		// TODO train set TCP protocol for load balance
+		ctx: ctx,
 	}
 
 	p.upstreamCallbacks = &upstreamCallbacks{
@@ -418,6 +419,10 @@ type LbContext struct {
 }
 
 func (c *LbContext) MetadataMatchCriteria() api.MetadataMatchCriteria {
+	return nil
+}
+
+func (c *LbContext) ConsistentHashCriteria() api.ConsistentHashCriteria {
 	return nil
 }
 

@@ -48,14 +48,14 @@ func RegisterProtocolResource(protocol types.ProtocolName, resource api.Protocol
 }
 
 // GetProtocolResource get URI,PATH,ARG var depends on ProtocolResourceName
-func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName) (string, error) {
+func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, data ...interface{}) (string, error) {
 	p, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(types.ProtocolName)
 	if !ok {
 		return "", errors.New("get ContextKeyDownStreamProtocol failed.")
 	}
 
 	if v, ok := protocolVar[convert(p, name)]; ok {
-		return GetVariableValue(ctx, v)
+		return GetVariableValue(ctx, v, data[0])
 	} else {
 		return "", errors.New(errUnregisterProtocolResource + string(p))
 	}

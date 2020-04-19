@@ -25,7 +25,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func GetVariableValue(ctx context.Context, name string) (string, error) {
+func GetVariableValue(ctx context.Context, name string, data ...interface{}) (string, error) {
 	// 1. find built-in variables
 	if variable, ok := variables[name]; ok {
 		// 1.1 check indexed value
@@ -48,7 +48,7 @@ func GetVariableValue(ctx context.Context, name string) (string, error) {
 			if getter == nil {
 				return "", errors.New(errGetterNotFound + name)
 			}
-			return getter(ctx, nil, name)
+			return getter(ctx, nil, data[0])
 		}
 	}
 

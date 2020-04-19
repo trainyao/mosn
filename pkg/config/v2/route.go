@@ -48,19 +48,20 @@ type RouterConfig struct {
 }
 
 type RouterActionConfig struct {
-	ClusterName             string               `json:"cluster_name,omitempty"`
-	UpstreamProtocol        string               `json:"upstream_protocol,omitempty"`
-	ClusterHeader           string               `json:"cluster_header,omitempty"`
-	WeightedClusters        []WeightedCluster    `json:"weighted_clusters,omitempty"`
-	MetadataConfig          *MetadataConfig      `json:"metadata_match,omitempty"`
-	TimeoutConfig           api.DurationConfig   `json:"timeout,omitempty"`
-	RetryPolicy             *RetryPolicy         `json:"retry_policy,omitempty"`
-	PrefixRewrite           string               `json:"prefix_rewrite,omitempty"`
-	HostRewrite             string               `json:"host_rewrite,omitempty"`
-	AutoHostRewrite         bool                 `json:"auto_host_rewrite,omitempty"`
-	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
-	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
-	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
+	ClusterName             string                       `json:"cluster_name,omitempty"`
+	UpstreamProtocol        string                       `json:"upstream_protocol,omitempty"`
+	ClusterHeader           string                       `json:"cluster_header,omitempty"`
+	WeightedClusters        []WeightedCluster            `json:"weighted_clusters,omitempty"`
+	HashPolicy              []api.ConsistentHashCriteria `json:"hash_policy,omitempty"`
+	MetadataConfig          *MetadataConfig              `json:"metadata_match,omitempty"`
+	TimeoutConfig           api.DurationConfig           `json:"timeout,omitempty"`
+	RetryPolicy             *RetryPolicy                 `json:"retry_policy,omitempty"`
+	PrefixRewrite           string                       `json:"prefix_rewrite,omitempty"`
+	HostRewrite             string                       `json:"host_rewrite,omitempty"`
+	AutoHostRewrite         bool                         `json:"auto_host_rewrite,omitempty"`
+	RequestHeadersToAdd     []*HeaderValueOption         `json:"request_headers_to_add,omitempty"`
+	ResponseHeadersToAdd    []*HeaderValueOption         `json:"response_headers_to_add,omitempty"`
+	ResponseHeadersToRemove []string                     `json:"response_headers_to_remove,omitempty"`
 }
 
 type ClusterWeightConfig struct {

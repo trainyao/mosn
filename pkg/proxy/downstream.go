@@ -21,6 +21,7 @@ import (
 	"container/list"
 	"context"
 	"fmt"
+	"mosn.io/mosn/pkg"
 	"net"
 	"reflect"
 	"runtime/debug"
@@ -127,6 +128,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	// save downstream protocol
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proxy.serverStreamConn.Protocol())
+	log.DefaultLogger.Infof("[train] setting %s", proxy.serverStreamConn.Protocol())
 
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
@@ -324,6 +326,7 @@ func (s *downStream) OnDestroyStream() {}
 // types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
+	s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamHeaders, headers)
 	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 
@@ -1307,6 +1310,42 @@ func (s *downStream) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	if nil != s.requestInfo.RouteEntry() {
 		return s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
 	}
+
+	return nil
+}
+
+func (s *downStream) ConsistentHashCriteria() api.ConsistentHashCriteria {
+	//s.proxy.routersWrapper.GetRouters()
+	c := s.proxy.routersWrapper.GetRoutersConfig()
+	for _, vh := range c.VirtualHosts {
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"vh name %s", vh.Name)
+
+		for _,r := range vh.Routers {
+			for _, hp := range r.Route.HashPolicy {
+				if hpp, ok := hp.(*types.LBHeaderMaglevInfo); ok {
+					log.DefaultLogger.Infof(pkg.TrainLogFormat+"header key %s", hpp.Key)
+
+					return hpp
+				}
+				if hpp, ok := hp.(*types.LBHttpCookieMaglevInfo); ok {
+					log.DefaultLogger.Infof(pkg.TrainLogFormat+"cookie path %s", hpp.Path)
+
+					return hpp
+				}
+				if hpp, ok := hp.(*types.LBSourceIPMaglevInfo); ok {
+					log.DefaultLogger.Infof(pkg.TrainLogFormat+"source ip")
+
+					return hpp
+				}
+
+			}
+		}
+	}
+
+	//s.proxy.routersWrapper
+	//if nil != s.requestInfo.RouteEntry() {
+	//	return s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
+	//}
 
 	return nil
 }

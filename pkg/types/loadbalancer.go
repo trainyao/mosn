@@ -19,7 +19,9 @@ package types
 
 import (
 	"context"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"net"
+	"time"
 
 	"mosn.io/api"
 )
@@ -53,6 +55,9 @@ type LoadBalancerContext interface {
 	// MetadataMatchCriteria gets metadata match criteria used for selecting a subset of hosts
 	MetadataMatchCriteria() api.MetadataMatchCriteria
 
+	// MetadataMatchCriteria gets metadata match criteria used for selecting a subset of hosts
+	ConsistentHashCriteria() api.ConsistentHashCriteria
+
 	// DownstreamConnection returns the downstream connection.
 	DownstreamConnection() net.Conn
 
@@ -83,6 +88,47 @@ type LBSubsetEntry interface {
 
 	HostNum() int
 }
+
+type LBMaglevInfo interface {
+	// MaglevInfo type
+	Type() v2.MaglevType
+	api.ConsistentHashCriteria
+}
+
+type LBHeaderMaglevInfo struct {
+	Key string
+}
+
+func (m *LBHeaderMaglevInfo) Type() v2.MaglevType {
+	return v2.MaglevType_header
+}
+func (m *LBHeaderMaglevInfo) HashType() api.ConsistentHashType{
+	return api.Maglev
+}
+
+type LBHttpCookieMaglevInfo struct {
+	Name string
+	Path string
+	TTL  time.Duration
+}
+
+func (m *LBHttpCookieMaglevInfo) Type() v2.MaglevType {
+	return v2.MaglevType_http_cookie
+}
+func (m *LBHttpCookieMaglevInfo) HashType() api.ConsistentHashType{
+	return api.Maglev
+}
+
+type LBSourceIPMaglevInfo struct {
+}
+
+func (m *LBSourceIPMaglevInfo) Type() v2.MaglevType {
+	return v2.MaglevType_source_IP
+}
+func (m *LBSourceIPMaglevInfo) HashType() api.ConsistentHashType{
+	return api.Maglev
+}
+
 
 // FallBackPolicy type
 type FallBackPolicy uint8

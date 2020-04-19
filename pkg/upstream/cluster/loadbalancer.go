@@ -22,9 +22,12 @@ import (
 	"fmt"
 	"github.com/dchest/siphash"
 	"math/rand"
+	"mosn.io/mosn/pkg"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/variable"
 	"net"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -172,6 +175,8 @@ func NewMaglevInfo(config *v2.LBMaglevConfig) (i types.LBMaglevInfo) {
 }
 
 func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in new %s", string(debug.Stack()))
+
 	hosts := []string{}
 	for _, h := range set.HealthyHosts() {
 		hosts = append(hosts, h.AddressString())
@@ -208,16 +213,26 @@ type maglevLoadBalancer struct {
 }
 
 func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	log.DefaultLogger.Infof("[train] in choose")
+	// host empty, maglev info may be nil
 	if lb.maglev == nil {
 		return nil
 	}
 
-	c := context.DownstreamCluster().LbMaglevInfo()
+	ch := context.ConsistentHashCriteria()
+	if ch == nil || ch.HashType() != api.Maglev {
+		return nil
+	}
+
+	c, ok := ch.(types.LBMaglevInfo)
+	if !ok {
+		return nil
+	}
+
 	hash := lb.generateChooseHostHash(context, c)
 
 	// TODO train 确定 长连接 upstream 变化
 	// TODO train 确定 upstream 下架之后变化
-	//remote := context.DownstreamConnection().RemoteAddr()
 
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
@@ -225,16 +240,10 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 		return nil
 	}
 
-	//hash := getHashByAddr(remote)
-	//hash := siphash.Hash(0xbeefcafebabedead, 0, []byte("train123"))
-	//hash :=
 	index := lb.maglev.Lookup(hash)
 
-	log.Proxy.Infof(nil, "[lb][maglev][train] network %s addr %s get index %d host %s %s",
-		"train123", "train123", index, lb.healthyHosts[index].Hostname(), lb.healthyHosts[index].AddressString())
-
-	//log.Proxy.Debugf(nil, "[lb][maglev][train] network %s addr %s get index %d host %s %s",
-	//	remote.Network(), remote.String(), index, lb.healthyHosts[index].Hostname(), lb.healthyHosts[index].AddressString())
+	log.Proxy.Infof(nil, "[lb][maglev][train] get index %d host %s %s",
+		index, lb.healthyHosts[index].Hostname(), lb.healthyHosts[index].AddressString())
 
 	return lb.healthyHosts[index]
 }
@@ -242,20 +251,35 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerContext, info types.LBMaglevInfo) uint64 {
 	switch info.(type) {
 	case *types.LBHeaderMaglevInfo:
+		log.DefaultLogger.Infof("[train] generate header hash")
+
 		headerKey := info.(*types.LBHeaderMaglevInfo).Key
-		if headerValue, found := context.DownstreamHeaders().Get(headerKey); found && headerValue != "" {
-			return getHashByString(headerValue)
+		log.DefaultLogger.Infof("[train] header key %s", headerKey)
+		//protocolResourceName := api.ProtocolResourceName(fmt.Sprintf("%s%s",
+		//	types.VarPrefixHttp2Header, headerKey))
+
+		headerValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.HEADER, headerKey)
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+" header value %s", headerValue)
+
+		if err == nil {
+			log.DefaultLogger.Infof("[train] header value %s", headerValue)
+			hashString := fmt.Sprintf("h:%s", headerValue)
+			return getHashByString(hashString)
 		} else {
-			return uint64(lb.rand.Int63())
+			log.DefaultLogger.Infof(pkg.TrainLogFormat+ "%+v", err)
 		}
 	case *types.LBSourceIPMaglevInfo:
+		log.DefaultLogger.Infof("[train] generate ip hash")
+
 		return getHashByAddr(context.DownstreamConnection().RemoteAddr())
 	case *types.LBHttpCookieMaglevInfo:
-
+		log.DefaultLogger.Infof("[train] generate cookie hash")
 	default:
-		return uint64(lb.rand.Int63())
+		log.DefaultLogger.Infof("[train] generate default hash")
 	}
 
+	log.DefaultLogger.Infof("[train] generate random hash")
+	return uint64(lb.rand.Int63())
 }
 
 func (lb *maglevLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
@@ -289,9 +313,10 @@ func getHashByString(str string) uint64 {
 	return siphash.Hash(0xbeefcafebabedead, 0, []byte(str))
 }
 
-func getRandomHash(source rand.Source) uint64 {
-	return rand.NewSource(int64(time.Now().Nanosecond()))
-}
+//
+//func getRandomHash(source rand.Source) uint64 {
+//	return rand.NewSource(int64(time.Now().Nanosecond()))
+//}
 
 // TODO:
 // WRR
