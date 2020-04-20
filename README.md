@@ -1,49 +1,27 @@
-![MOSN Logo](https://raw.githubusercontent.com/mosn/community/master/icons/png/mosn-labeled-horizontal.png)
 
-[![Build Status](https://travis-ci.com/mosn/mosn.svg?branch=master)](https://travis-ci.com/mosn/mosn)
-[![codecov](https://codecov.io/gh/mosn/mosn/branch/master/graph/badge.svg)](https://codecov.io/gh/mosn/mosn)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mosn/mosn)](https://goreportcard.com/report/github.com/mosn/mosn)
-![license](https://img.shields.io/badge/license-Apache--2.0-green.svg)
 
-[中文](README_ZH.md)
+方案描述:
+1. 使用了[第三方库](https://github.com/dgryski/go-maglev)的 maglev 算法
+2. 计算 maglev index 时需要一个 hash, 
 
-MOSN is a network proxy written in Golang. It can be used as a cloud-native network data plane, providing services with the following proxy functions:  multi-protocol, modular, intelligent, and secure. MOSN is the short name of Modular Open Smart Network-proxy. MOSN can be integrated with any Service Mesh which support xDS API. It also can be used as an independent Layer 4 or Layer 7 load balancer, API Gateway, cloud-native Ingress, etc.
 
-## Features
-
-As an open source network proxy, MOSN has the following core functions:
-
-+ Support full dynamic resource configuration through xDS API integrated with Service Mesh.
-+ Support proxy with TCP, HTTP, and RPC protocols.
-+ Support rich routing features.
-+ Support reliable upstream management and load balancing capabilities.
-+ Support network and protocol layer observability.
-+ Support mTLS and protocols on TLS.
-+ Support rich extension mechanism to provide highly customizable expansion capabilities.
-+ Support process smooth upgrade.
-  
-## Download&Install
-
-Use `go get -u mosn.io/mosn`, or you can git clone the repository to `$GOPATH/src/mosn.io/mosn`.
-
-**Notice**
-
-- If you need to use code before 0.8.1, you may needs to run the script `transfer_path.sh` to fix the import path.
-- If you are in Linux, you should modify the `SED_CMD` in `transfer_path.sh`, see the comment in the script file.
-
-## Documentation
-
-- [MOSN website](https://mosn.io)
-- [Changelog](CHANGELOG.md)
-
-## Contributing
-
-See our [contributor guide](CONTRIBUTING.md).
-
-## Community
-
-See our community materials on <https://github.com/mosn/community>.
-
-Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join the MOSN user group.
-
-![MOSN user group DingTalk QR code](https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ)
+细节:
+- 配置加载
+    - 支持的配置
+        - header 
+        - http cookie
+        - ip 
+    - from config
+    - from Istio
+- maglev 初始化
+    - 1. 库:
+        - 使用[这个库](https://github.com/dgryski/go-maglev)的 maglev 算法
+        - 使用[这个分支] 的 `protocolVariable` 接口, 
+    - 保存 maglev 信息, 在 `ChooseHost` 接口时根据因子(header/cookie/ip) 返回hash 
+        (uint64), 传入maglev 库
+    - 2. 初始化:
+        - 在[这里](https://github.com/mosn/mosn/blob/feature-istio_adapter/pkg/upstream/cluster/loadbalancer.go#L96) 
+            加一个 `maglevLoadBalancer` 结构体, 保存 maglev 库需要的信息
+        - new `maglevLoadBalancer` 时, 根据 host 列表计算 maglev 表
+- 路由
+    - 1. `ChooseHash` 接口执行时, 根据因子(header/cookie/ip)
