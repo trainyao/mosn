@@ -33,7 +33,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/dgryski/go-maglev"
+	"github.com/trainyao/go-maglev"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
@@ -213,19 +213,22 @@ type maglevLoadBalancer struct {
 }
 
 func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	log.DefaultLogger.Infof("[train] in choose")
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in choose")
 	// host empty, maglev info may be nil
 	if lb.maglev == nil {
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"lb mgv info == nil")
 		return nil
 	}
 
 	ch := context.ConsistentHashCriteria()
 	if ch == nil || ch.HashType() != api.Maglev {
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"ch != mgv info ")
 		return nil
 	}
 
 	c, ok := ch.(types.LBMaglevInfo)
 	if !ok {
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"type not mgv info")
 		return nil
 	}
 
@@ -254,17 +257,16 @@ func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerC
 		log.DefaultLogger.Infof("[train] generate header hash")
 
 		headerKey := info.(*types.LBHeaderMaglevInfo).Key
-		log.DefaultLogger.Infof("[train] header key %s", headerKey)
-		//protocolResourceName := api.ProtocolResourceName(fmt.Sprintf("%s%s",
-		//	types.VarPrefixHttp2Header, headerKey))
+		protocolVarHeaderKey := fmt.Sprintf("%s%s", types.VarProtocolRequestHeader, headerKey)
+		log.DefaultLogger.Infof("[train] header key %s", protocolVarHeaderKey)
 
-		headerValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.HEADER, headerKey)
-		log.DefaultLogger.Infof(pkg.TrainLogFormat+" header value %s", headerValue)
+		headerValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.HEADER, protocolVarHeaderKey)
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"header value %s", headerValue)
 
 		if err == nil {
-			log.DefaultLogger.Infof("[train] header value %s", headerValue)
-			hashString := fmt.Sprintf("h:%s", headerValue)
-			return getHashByString(hashString)
+			hashString := fmt.Sprintf("%s:%s", headerKey, headerValue)
+			hash := getHashByString(hashString)
+			return hash
 		} else {
 			log.DefaultLogger.Infof(pkg.TrainLogFormat+ "%+v", err)
 		}
@@ -274,12 +276,27 @@ func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerC
 		return getHashByAddr(context.DownstreamConnection().RemoteAddr())
 	case *types.LBHttpCookieMaglevInfo:
 		log.DefaultLogger.Infof("[train] generate cookie hash")
+		info := info.(*types.LBHttpCookieMaglevInfo)
+		cookieName := info.Name
+		//cookiePath := info.Path
+		//cookieTTL := info.TTL
+		//dsn := fmt.Sprintf("cookie://%s/%s?ttl=%s", cookiePath, cookieName, cookieTTL)
+		dsn := fmt.Sprintf("%s%s", types.VarPrefixHttpCookie, cookieName)
+
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"cookie dsn %s", dsn)
+
+		cookieValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.COOKIE, dsn)
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"cookie value %s", cookieValue)
+		if err == nil {
+			h := getHashByString(fmt.Sprintf("%s&value=%s", cookieValue))
+			return h
+		}
 	default:
 		log.DefaultLogger.Infof("[train] generate default hash")
 	}
 
 	log.DefaultLogger.Infof("[train] generate random hash")
-	return uint64(lb.rand.Int63())
+	return 0
 }
 
 func (lb *maglevLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {

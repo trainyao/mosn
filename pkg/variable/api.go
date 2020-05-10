@@ -20,6 +20,8 @@ package variable
 import (
 	"context"
 	"errors"
+	"fmt"
+	"mosn.io/mosn/pkg"
 	"strings"
 
 	"mosn.io/mosn/pkg/types"
@@ -42,8 +44,15 @@ func GetVariableValue(ctx context.Context, name string, data ...interface{}) (st
 	}
 
 	// 2. find prefix variables
+	fullName, ok := data[0].(string)
+	if ! ok {
+	}
+
 	for prefix, variable := range prefixVariables {
-		if strings.HasPrefix(name, prefix) {
+		if strings.HasPrefix(fullName, prefix) {
+			fmt.Printf(pkg.TrainLogFormat+"found prefix %s of %s\n", prefix, fullName)
+			fmt.Printf(pkg.TrainLogFormat+"var %s\n", variable.Name())
+
 			getter := variable.Getter()
 			if getter == nil {
 				return "", errors.New(errGetterNotFound + name)

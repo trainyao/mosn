@@ -39,8 +39,6 @@ github.com/cncf/udpa/go/udpa/annotations
 github.com/davecgh/go-spew/spew
 # github.com/dchest/siphash v1.2.1
 github.com/dchest/siphash
-# github.com/dgryski/go-maglev v0.0.0-20170623041913-a123f15678dd
-github.com/dgryski/go-maglev
 # github.com/dubbogo/gost v1.1.1
 github.com/dubbogo/gost/bytes
 github.com/dubbogo/gost/math/big
@@ -151,6 +149,8 @@ github.com/stretchr/testify/assert
 # github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb
 github.com/tjfoc/gmsm/sm3
 github.com/tjfoc/gmsm/sm4
+# github.com/trainyao/go-maglev v0.0.0-20200509152829-19c496856478
+github.com/trainyao/go-maglev
 # github.com/urfave/cli v1.20.0
 github.com/urfave/cli
 # github.com/valyala/bytebufferpool v1.0.0

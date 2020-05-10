@@ -183,6 +183,8 @@ github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJy
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb h1:ePtzxFvA6a1j9hB+mRFqq6sGxJf/z1j1Px+ihCUKshI=
 github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb/go.mod h1:XxO4hdhhrzAd+G4CjDqaOkd0hUzmtPR/d3EiBBMn/wc=
+github.com/trainyao/go-maglev v0.0.0-20200509152829-19c496856478 h1:Lnm8wSenPVUUlH42qTZJO+uI6UzA7rKHa0VDLZ0e9T8=
+github.com/trainyao/go-maglev v0.0.0-20200509152829-19c496856478/go.mod h1:VBsRn0SDTltC3/SzN6SgXlQtmBk6U5sf0KW+eT+WMbc=
 github.com/urfave/cli v1.20.0 h1:fDqGv3UG/4jbVl/QkFwEdddtEDjh/5Ov6X+0B/3bPaw=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=

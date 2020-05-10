@@ -19,6 +19,7 @@ package tcpproxy
 
 import (
 	"context"
+	"mosn.io/mosn/pkg"
 	"net"
 	"reflect"
 	"strconv"
@@ -423,6 +424,22 @@ func (c *LbContext) MetadataMatchCriteria() api.MetadataMatchCriteria {
 }
 
 func (c *LbContext) ConsistentHashCriteria() api.ConsistentHashCriteria {
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in tcp hash criteria getting")
+	maglevInfo := c.cluster.LbMaglevInfo()
+	if _, ok := maglevInfo.(*types.LBHeaderMaglevInfo); ok {
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"tcp header mgv info")
+		return nil
+	}
+	if _, ok := maglevInfo.(*types.LBHttpCookieMaglevInfo); ok {
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"tcp cookie mgv info")
+		return nil
+	}
+	if _, ok := maglevInfo.(*types.LBSourceIPMaglevInfo); ok {
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"tcp ip mgv info")
+		return maglevInfo
+	}
+	//return maglevInfo
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+"returning nil in end")
 	return nil
 }
 

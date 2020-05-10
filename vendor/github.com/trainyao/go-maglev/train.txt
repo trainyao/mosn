@@ -1,0 +1,15 @@
+goos: linux
+goarch: amd64
+pkg: github.com/dgryski/go-maglev
+BenchmarkGenerate-4   	  243663	      4909 ns/op	    2048 B/op	       2 allocs/op
+BenchmarkGenerate-4   	  244317	      4907 ns/op	    2048 B/op	       2 allocs/op
+BenchmarkGenerate-4   	  244221	      4921 ns/op	    2048 B/op	       2 allocs/op
+BenchmarkGenerate-4   	  244765	      4921 ns/op	    2048 B/op	       2 allocs/op
+BenchmarkGenerate-4   	  243433	      4923 ns/op	    2048 B/op	       2 allocs/op
+BenchmarkGenerate-4   	  243705	      4952 ns/op	    2048 B/op	       2 allocs/op
+BenchmarkGenerate-4   	  243174	      5385 ns/op	    2048 B/op	       2 allocs/op
+BenchmarkGenerate-4   	  224240	      5570 ns/op	    2048 B/op	       2 allocs/op
+BenchmarkGenerate-4   	  219523	      5213 ns/op	    2048 B/op	       2 allocs/op
+BenchmarkGenerate-4   	  241710	      4978 ns/op	    2048 B/op	       2 allocs/op
+PASS
+ok  	github.com/dgryski/go-maglev	13.805s

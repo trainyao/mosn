@@ -1,0 +1,419 @@
+---
+##################################################################################################
+# Productpage services
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: tcp
+  labels:
+    app: tcp
+    service: tcp
+spec:
+  ports:
+  - port: 8081
+    name: tcp
+  selector:
+    app: tcp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bookinfo-tcp
+  labels:
+    account: tcp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: tcp
+    version: v1
+  name: tcp-v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tcp
+      version: v1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/interceptionMode: REDIRECT
+        sidecar.istio.io/status: '{"version":"eb43b1296d9ff4818a2c0f63e1ea5f875f35972879e4e8fe61ddc3543e7163d1","initContainers":["istio-init"],"containers":["istio-proxy"],"volumes":["istio-envoy","istio-certs"],"imagePullSecrets":null}'
+        traffic.sidecar.istio.io/excludeInboundPorts: "15020"
+        traffic.sidecar.istio.io/includeInboundPorts: "8081"
+        traffic.sidecar.istio.io/includeOutboundIPRanges: '*'
+      creationTimestamp: null
+      labels:
+        app: tcp
+        security.istio.io/tlsMode: istio
+        version: v1
+    spec:
+      containers:
+      - image: trainyao/gloo_in_none_kubernetes_env_kv
+        imagePullPolicy: IfNotPresent
+        name: tcp
+        ports:
+        - containerPort: 8081
+        resources: {}
+      - args:
+        - proxy
+        - sidecar
+        - --domain
+        - $(POD_NAMESPACE).svc.cluster.local
+        - --configPath
+        - /etc/istio/proxy
+        - --binaryPath
+        - /usr/local/bin/envoy
+        - --serviceCluster
+        - tcp.$(POD_NAMESPACE)
+        - --drainDuration
+        - 45s
+        - --parentShutdownDuration
+        - 1m0s
+        - --discoveryAddress
+        - istio-pilot.istio-system:15010
+        - --zipkinAddress
+        - zipkin.istio-system:9411
+        - --dnsRefreshRate
+        - 300s
+        - --connectTimeout
+        - 10s
+        - --proxyAdminPort
+        - "15000"
+        - --concurrency
+        - "2"
+        - --controlPlaneAuthPolicy
+        - NONE
+        - --statusPort
+        - "15020"
+        - --applicationPorts
+        - "8081"
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ISTIO_META_POD_PORTS
+          value: |-
+            [
+                {"containerPort":8081}
+            ]
+        - name: ISTIO_META_CLUSTER_ID
+          value: Kubernetes
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: INSTANCE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: ISTIO_META_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ISTIO_META_CONFIG_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: SDS_ENABLED
+          value: "false"
+        - name: ISTIO_META_INTERCEPTION_MODE
+          value: REDIRECT
+        - name: ISTIO_META_INCLUDE_INBOUND_PORTS
+          value: "8081"
+        - name: ISTIO_METAJSON_LABELS
+          value: |
+            {"app":"tcp","version":"v1"}
+        - name: ISTIO_META_WORKLOAD_NAME
+          value: tcp-v1
+        - name: ISTIO_META_OWNER
+          value: kubernetes://apis/apps/v1/namespaces/default/deployments/tcp-v1
+        image: istio/proxyv2:1.4.6
+        imagePullPolicy: IfNotPresent
+        name: istio-proxy
+        ports:
+        - containerPort: 15090
+          name: http-envoy-prom
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "2"
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1337
+          runAsNonRoot: true
+          runAsUser: 1337
+        volumeMounts:
+        - mountPath: /etc/istio/proxy
+          name: istio-envoy
+        - mountPath: /etc/certs/
+          name: istio-certs
+          readOnly: true
+      initContainers:
+      - command:
+        - istio-iptables
+        - -p
+        - "15001"
+        - -z
+        - "15006"
+        - -u
+        - "1337"
+        - -m
+        - REDIRECT
+        - -i
+        - '*'
+        - -x
+        - ""
+        - -b
+        - '*'
+        - -d
+        - "15020"
+        image: docker.io/istio/proxyv2:1.4.6
+        imagePullPolicy: IfNotPresent
+        name: istio-init
+        resources:
+          limits:
+            cpu: 100m
+            memory: 50Mi
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+      serviceAccountName: bookinfo-tcp
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: istio-envoy
+      - name: istio-certs
+        secret:
+          optional: true
+          secretName: istio.bookinfo-tcp
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: tcp
+    version: v2
+  name: tcp-v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tcp
+      version: v2
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/interceptionMode: REDIRECT
+        sidecar.istio.io/status: '{"version":"eb43b1296d9ff4818a2c0f63e1ea5f875f35972879e4e8fe61ddc3543e7163d1","initContainers":["istio-init"],"containers":["istio-proxy"],"volumes":["istio-envoy","istio-certs"],"imagePullSecrets":null}'
+        traffic.sidecar.istio.io/excludeInboundPorts: "15020"
+        traffic.sidecar.istio.io/includeInboundPorts: "8081"
+        traffic.sidecar.istio.io/includeOutboundIPRanges: '*'
+      creationTimestamp: null
+      labels:
+        app: tcp
+        security.istio.io/tlsMode: istio
+        version: v2
+    spec:
+      containers:
+      - image: trainyao/gloo_in_none_kubernetes_env_kv
+        imagePullPolicy: IfNotPresent
+        name: tcp
+        ports:
+        - containerPort: 8081
+        resources: {}
+      - args:
+        - proxy
+        - sidecar
+        - --domain
+        - $(POD_NAMESPACE).svc.cluster.local
+        - --configPath
+        - /etc/istio/proxy
+        - --binaryPath
+        - /usr/local/bin/envoy
+        - --serviceCluster
+        - tcp.$(POD_NAMESPACE)
+        - --drainDuration
+        - 45s
+        - --parentShutdownDuration
+        - 1m0s
+        - --discoveryAddress
+        - istio-pilot.istio-system:15010
+        - --zipkinAddress
+        - zipkin.istio-system:9411
+        - --dnsRefreshRate
+        - 300s
+        - --connectTimeout
+        - 10s
+        - --proxyAdminPort
+        - "15000"
+        - --concurrency
+        - "2"
+        - --controlPlaneAuthPolicy
+        - NONE
+        - --statusPort
+        - "15020"
+        - --applicationPorts
+        - "8081"
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ISTIO_META_POD_PORTS
+          value: |-
+            [
+                {"containerPort":8081}
+            ]
+        - name: ISTIO_META_CLUSTER_ID
+          value: Kubernetes
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: INSTANCE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: ISTIO_META_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ISTIO_META_CONFIG_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: SDS_ENABLED
+          value: "false"
+        - name: ISTIO_META_INTERCEPTION_MODE
+          value: REDIRECT
+        - name: ISTIO_META_INCLUDE_INBOUND_PORTS
+          value: "8081"
+        - name: ISTIO_METAJSON_LABELS
+          value: |
+            {"app":"tcp","version":"v2"}
+        - name: ISTIO_META_WORKLOAD_NAME
+          value: tcp-v2
+        - name: ISTIO_META_OWNER
+          value: kubernetes://apis/apps/v1/namespaces/default/deployments/tcp-v2
+        image: istio/proxyv2:1.4.6
+        imagePullPolicy: IfNotPresent
+        name: istio-proxy
+        ports:
+        - containerPort: 15090
+          name: http-envoy-prom
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "2"
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1337
+          runAsNonRoot: true
+          runAsUser: 1337
+        volumeMounts:
+        - mountPath: /etc/istio/proxy
+          name: istio-envoy
+        - mountPath: /etc/certs/
+          name: istio-certs
+          readOnly: true
+      initContainers:
+      - command:
+        - istio-iptables
+        - -p
+        - "15001"
+        - -z
+        - "15006"
+        - -u
+        - "1337"
+        - -m
+        - REDIRECT
+        - -i
+        - '*'
+        - -x
+        - ""
+        - -b
+        - '*'
+        - -d
+        - "15020"
+        image: docker.io/istio/proxyv2:1.4.6
+        imagePullPolicy: IfNotPresent
+        name: istio-init
+        resources:
+          limits:
+            cpu: 100m
+            memory: 50Mi
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsGroup: 0
+          runAsNonRoot: false
+          runAsUser: 0
+      serviceAccountName: bookinfo-tcp
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: istio-envoy
+      - name: istio-certs
+        secret:
+          optional: true
+          secretName: istio.bookinfo-tcp
+status: {}
+---

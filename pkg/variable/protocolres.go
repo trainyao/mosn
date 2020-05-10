@@ -20,7 +20,9 @@ package variable
 import (
 	"context"
 	"errors"
+	"fmt"
 	"mosn.io/api"
+	"mosn.io/mosn/pkg"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 )
@@ -54,7 +56,14 @@ func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, dat
 		return "", errors.New("get ContextKeyDownStreamProtocol failed.")
 	}
 
+	fmt.Printf(pkg.TrainLogFormat+"protocol %s", p)
+
+	n := convert(p, name)
+	fmt.Printf(pkg.TrainLogFormat+"n %s", n)
+
 	if v, ok := protocolVar[convert(p, name)]; ok {
+		fmt.Printf(pkg.TrainLogFormat+"v %s", v)
+		fmt.Printf(pkg.TrainLogFormat+"d %s", data[0])
 		return GetVariableValue(ctx, v, data[0])
 	} else {
 		return "", errors.New(errUnregisterProtocolResource + string(p))

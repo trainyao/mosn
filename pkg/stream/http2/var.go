@@ -13,24 +13,25 @@ import (
 )
 
 var (
-//builtinVariables = []variable.Variable{
-//	variable.NewBasicVariable(types.VarHttp2RequestPath, nil, requestPathGetter, nil, 0),
-//}
+	//builtinVariables = []variable.Variable{
+	//	variable.NewBasicVariable(types.VarHttp2RequestPath, nil, requestPathGetter, nil, 0),
+	//}
 
-//prefixVariables = []variable.Variable{
-//	variable.NewBasicVariable(headerPrefix, nil, httpHeaderGetter, nil, 0),
-//	variable.NewBasicVariable(argPrefix, nil, httpArgGetter, nil, 0),
-//	variable.NewBasicVariable(cookiePrefix, nil, httpCookieGetter, nil, 0),
-//}
+	//prefixVariables = []variable.Variable{
+	//	variable.NewBasicVariable(headerPrefix, nil, httpHeaderGetter, nil, 0),
+	//	variable.NewBasicVariable(argPrefix, nil, httpArgGetter, nil, 0),
+	//	variable.NewBasicVariable(cookiePrefix, nil, httpCookieGetter, nil, 0),
+	//}
+	headerIndex = len(types.VarProtocolRequestHeader)
 )
 
 func init() {
 	variable.RegisterVariable(variable.NewBasicVariable(types.VarIP, nil, connectionIPGetter, nil, 0))
-	variable.RegisterPrefixVariable(types.VarPrefixHttp2Header,
-		variable.NewBasicVariable(types.VarPrefixHttp2Header, nil, headerGetter, nil, 0))
+	variable.RegisterPrefixVariable(types.VarProtocolRequestHeader,
+		variable.NewBasicVariable(types.VarProtocolRequestHeader, nil, headerGetter, nil, 0))
 
 	variable.RegisterProtocolResource(protocol.HTTP2, api.IP, types.VarIP)
-	variable.RegisterProtocolResource(protocol.HTTP2, api.HEADER, types.VarPrefixHttp2Header)
+	variable.RegisterProtocolResource(protocol.HTTP2, api.HEADER, types.VarProtocolRequestHeader)
 }
 
 func headerGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
@@ -43,9 +44,9 @@ func headerGetter(ctx context.Context, value *variable.IndexedValue, data interf
 		return variable.ValueNotFound, nil
 	}
 
-	log.DefaultLogger.Infof(pkg.TrainLogFormat+" in header getter, headers %+v header key ",headers, headerKey)
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+" in header getter, headers %+v header key ", headers, headerKey)
 
-	header, found := headers.Get(headerKey)
+	header, found := headers.Get(headerKey[headerIndex:])
 	if !found {
 		return variable.ValueNotFound, nil
 	}

@@ -20,6 +20,8 @@ package http
 import (
 	"context"
 	"mosn.io/api"
+	"mosn.io/mosn/pkg"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"strconv"
 
@@ -31,12 +33,11 @@ const (
 	VarRequestMethod = "http_request_method"
 	VarRequestLength = "http_request_length"
 
-	headerPrefix = "http_header_"
-	headerIndex  = len(headerPrefix)
+	headerIndex  = len(types.VarProtocolRequestHeader)
 	argPrefix    = "http_arg_"
 	argIndex     = len(argPrefix)
-	cookiePrefix = "http_cookie_"
-	cookieIndex  = len(cookiePrefix)
+	//cookiePrefix = "http_cookie_"
+	cookieIndex  = len(types.VarPrefixHttpCookie)
 )
 
 var (
@@ -49,9 +50,9 @@ var (
 	}
 
 	prefixVariables = []variable.Variable{
-		variable.NewBasicVariable(headerPrefix, nil, httpHeaderGetter, nil, 0),
+		variable.NewBasicVariable(types.VarProtocolRequestHeader, nil, httpHeaderGetter, nil, 0),
 		variable.NewBasicVariable(argPrefix, nil, httpArgGetter, nil, 0),
-		variable.NewBasicVariable(cookiePrefix, nil, httpCookieGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpCookie, nil, httpCookieGetter, nil, 0),
 	}
 )
 
@@ -70,6 +71,8 @@ func init() {
 	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarHttpRequestPath)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarHttpRequestUri)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarHttpRequestArg)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.COOKIE, types.VarPrefixHttpCookie)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.HEADER, types.VarProtocolRequestHeader)
 }
 
 func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -112,11 +115,15 @@ func requestArgGetter(ctx context.Context, value *variable.IndexedValue, data in
 }
 
 func httpHeaderGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in http header getter")
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
 
 	headerName := data.(string)
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+" header name %s", headerName)
+
 	headerValue := request.Header.Peek(headerName[headerIndex:])
+
 	// nil means no kv exists, "" means kv exists, but value is ""
 	if headerValue == nil {
 		return variable.ValueNotFound, nil
@@ -151,5 +158,6 @@ func httpCookieGetter(ctx context.Context, value *variable.IndexedValue, data in
 		return variable.ValueNotFound, nil
 	}
 
-	return string(cookieValue), nil
+	v := string(cookieValue)
+	return v, nil
 }

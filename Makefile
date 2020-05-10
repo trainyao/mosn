@@ -57,7 +57,7 @@ binary-host: build-host
 
 build-local:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
-	CGO_ENABLED=0 go build\
+	CGO_ENABLED=0 go build -mod=vendor\
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION})" \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
@@ -131,4 +131,9 @@ shell:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -ti -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} /bin/bash
 
-.PHONY: unit-test build image rpm upload shell
+.PHONY: unit-test build image rpm upload shell me
+
+me : build-local
+	docker build  build/bundles -f build/bundles/dockerfile -t mosnio/proxyv2:1.4.6-train
+	cd /home/trainyao/go/src/istio.io/istio/pilot/cmd/pilot-agent && make
+	dopodlike d ingress

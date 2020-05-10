@@ -1,0 +1,78 @@
+---
+##################################################################################################
+# Productpage services
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: tcp
+  labels:
+    app: tcp
+    service: tcp
+spec:
+  ports:
+  - port: 8081
+    name: http
+  selector:
+    app: tcp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bookinfo-tcp
+  labels:
+    account: tcp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tcp-v1
+  labels:
+    app: tcp
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tcp
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: tcp
+        version: v1
+    spec:
+      serviceAccountName: bookinfo-tcp
+      containers:
+      - name: tcp
+        image: trainyao/gloo_in_none_kubernetes_env_kv
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tcp-v2
+  labels:
+    app: tcp
+    version: v2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tcp
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: tcp
+        version: v2
+    spec:
+      serviceAccountName: bookinfo-tcp
+      containers:
+        - name: tcp
+          image: trainyao/gloo_in_none_kubernetes_env_kv
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081

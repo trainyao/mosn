@@ -24,6 +24,7 @@ import (
 // ProtocolName type definition
 const (
 	Auto      api.Protocol = "Auto"
+	TCP       api.Protocol = "TCP"
 	SofaRPC   api.Protocol = "SofaRpc"
 	HTTP1     api.Protocol = "Http1"
 	HTTP2     api.Protocol = "Http2"
