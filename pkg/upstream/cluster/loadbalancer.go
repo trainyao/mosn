@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"mosn.io/mosn/pkg"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/module/segmenttree"
 	"mosn.io/mosn/pkg/variable"
 	"net"
 	"runtime/debug"
@@ -142,44 +143,49 @@ func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
 	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in new %s", string(debug.Stack()))
 
 	var table *maglev.Table
+	var tree *segmenttree.Tree
 	names := []string{}
-	for _, host := range set.Hosts(){
+	for _, host := range set.Hosts() {
 		names = append(names, host.Hostname())
 	}
 	if len(names) != 0 {
 		table = maglev.New(names, maglev.SmallM)
+		// TODO build tree, devide hash
+		tree  = segmenttree.NewTree()
 	}
 
 	return &maglevLoadBalancer{
-		hosts:        set,
-		maglev:       table,
+		hosts:  set,
+		maglev: table,
+		fallbackSegTree: tree,
 	}
 }
 
 type maglevLoadBalancer struct {
 	// TODO train 确定 host 变化会不会动态变化 hostset.healthyhosts
-	hosts        types.HostSet
-	maglev       *maglev.Table
+	hosts           types.HostSet
+	maglev          *maglev.Table
+	fallbackSegTree *segmenttree.Tree
 }
 
 func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in choose")
+	log.DefaultLogger.Infof(pkg.TrainLogFormat + "in choose")
 
 	// host empty, maglev info may be nil
 	if lb.maglev == nil {
-		log.DefaultLogger.Infof(pkg.TrainLogFormat+"lb mgv info == nil")
+		log.DefaultLogger.Infof(pkg.TrainLogFormat + "lb mgv info == nil")
 		return nil
 	}
 
 	ch := context.ConsistentHashCriteria()
 	if ch == nil || ch.HashType() != api.Maglev {
-		log.DefaultLogger.Infof(pkg.TrainLogFormat+"ch != mgv info ")
+		log.DefaultLogger.Infof(pkg.TrainLogFormat + "ch != mgv info ")
 		return nil
 	}
 
 	c, ok := ch.(types.LBMaglevInfo)
 	if !ok {
-		log.DefaultLogger.Infof(pkg.TrainLogFormat+"type not mgv info")
+		log.DefaultLogger.Infof(pkg.TrainLogFormat + "type not mgv info")
 		return nil
 	}
 
@@ -188,7 +194,7 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 	chosen := lb.hosts.Hosts()[index]
 
 	if !chosen.Health() {
-		chosen = lb.chooseHostFromSegmentTree()
+		chosen = lb.chooseHostFromSegmentTree(index)
 	}
 
 	log.Proxy.Infof(nil, "[lb][maglev][train] get index %d host %s %s",
@@ -214,7 +220,7 @@ func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerC
 			hash := getHashByString(hashString)
 			return hash
 		} else {
-			log.DefaultLogger.Infof(pkg.TrainLogFormat+ "%+v", err)
+			log.DefaultLogger.Infof(pkg.TrainLogFormat+"%+v", err)
 		}
 	case *types.LBSourceIPMaglevInfo:
 		log.DefaultLogger.Infof("[train] generate ip hash")
@@ -249,7 +255,9 @@ func (lb *maglevLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.HealthyHosts())
 }
 
-func (lb *maglevLoadBalancer) chooseHostFromSegmentTree() types.Host {
+func (lb *maglevLoadBalancer) chooseHostFromSegmentTree(index int) types.Host {
+	leaf := lb.fallbackSegTree.Leaf(index)
+
 	return nil
 }
 
