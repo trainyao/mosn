@@ -83,7 +83,7 @@ type Cluster struct {
 	Spec                 ClusterSpecInfo     `json:"spec,omitempty"`
 	LBSubSetConfig       LBSubsetConfig      `json:"lb_subset_config,omitempty"`
 	LBOriDstConfig       LBOriDstConfig      `json:"original_dst_lb_config,omitempty"`
-	LBMaglevConfig       LBMaglevConfig      `json:"maglev_lb_config,omitempty"`
+	//LBMaglevConfig       LBMaglevConfig      `json:"maglev_lb_config,omitempty"`
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
@@ -178,105 +178,6 @@ type LBSubsetConfig struct {
 type LBOriDstConfig struct {
 	UseHeader  bool   `json:"use_header,omitempty"`
 	HeaderName string `json:"header_name,omitempty"`
-}
-
-type MaglevType string
-
-const (
-	MaglevType_header      MaglevType = "header"
-	MaglevType_http_cookie MaglevType = "http_cookie"
-	MaglevType_source_IP   MaglevType = "source_ip"
-)
-
-// LBMaglevConfig for Maglev load balancer.
-type LBMaglevConfig struct {
-	Type       MaglevType `json:"type,omitempty"`
-	HashFactor HashFactor `json:"hash_factor,omitempty"`
-}
-
-func (c *LBMaglevConfig) UnmarshalJSON(b []byte) error {
-	tmp := &struct {
-		Type MaglevType `json:"type,omitempty"`
-	}{}
-
-	err := json.Unmarshal(b, tmp)
-	if err != nil {
-		return err
-	}
-
-	f := struct {
-		HeashFacrtor HashFactor `json:"hash_factor,omitempty"`
-	}{}
-
-	switch tmp.Type {
-	case MaglevType_header:
-		f.HeashFacrtor = &HeaderMaglevHashFactor{}
-	case MaglevType_http_cookie:
-		f.HeashFacrtor = &HttpCookieMaglevHashFactor{}
-	case MaglevType_source_IP:
-		f.HeashFacrtor = &SourceIPMaglevHashFactor{}
-	default:
-		return fmt.Errorf("not found type %s", tmp.Type)
-	}
-
-	err = json.Unmarshal(b, &f)
-	if err != nil {
-		return err
-	}
-	c.Type = tmp.Type
-	c.HashFactor = f.HeashFacrtor
-
-	return nil
-}
-
-type HashFactor interface {
-	Type() string
-}
-
-type HeaderMaglevHashFactor struct {
-	HeaderKey string `json:"key,omitempty"`
-}
-
-func (f *HeaderMaglevHashFactor) Type() string {
-	return string(MaglevType_header)
-}
-
-type HttpCookieMaglevHashFactor struct {
-	CookieName string        `json:"name,omitempty"`
-	CookiePath string        `json:"path,omitempty"`
-	TTL        time.Duration `json:"ttl,omitempty"`
-}
-
-func (c *HttpCookieMaglevHashFactor) UnmarshalJSON(b []byte) error {
-	tmp := struct {
-		CookieName string `json:"name,omitempty"`
-		CookiePath string `json:"path,omitempty"`
-		TTL        string `json:"ttl,omitempty"`
-	}{}
-
-	if err := json.Unmarshal(b, &tmp); err != nil {
-		return err
-	}
-
-	var err error
-	if c.TTL, err = time.ParseDuration(tmp.TTL); err != nil {
-		return err
-	}
-	c.CookieName = tmp.CookieName
-	c.CookiePath = tmp.CookiePath
-
-	return nil
-}
-
-func (f *HttpCookieMaglevHashFactor) Type() string {
-	return string(MaglevType_http_cookie)
-}
-
-type SourceIPMaglevHashFactor struct {
-}
-
-func (f *SourceIPMaglevHashFactor) Type() string {
-	return string(MaglevType_source_IP)
 }
 
 // ClusterManagerConfig for making up cluster manager

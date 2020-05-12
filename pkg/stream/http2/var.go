@@ -9,29 +9,24 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
-	"net"
 )
 
 var (
-	//builtinVariables = []variable.Variable{
-	//	variable.NewBasicVariable(types.VarHttp2RequestPath, nil, requestPathGetter, nil, 0),
-	//}
-
-	//prefixVariables = []variable.Variable{
-	//	variable.NewBasicVariable(headerPrefix, nil, httpHeaderGetter, nil, 0),
-	//	variable.NewBasicVariable(argPrefix, nil, httpArgGetter, nil, 0),
-	//	variable.NewBasicVariable(cookiePrefix, nil, httpCookieGetter, nil, 0),
-	//}
 	headerIndex = len(types.VarProtocolRequestHeader)
 )
 
 func init() {
-	variable.RegisterVariable(variable.NewBasicVariable(types.VarIP, nil, connectionIPGetter, nil, 0))
 	variable.RegisterPrefixVariable(types.VarProtocolRequestHeader,
 		variable.NewBasicVariable(types.VarProtocolRequestHeader, nil, headerGetter, nil, 0))
+	variable.RegisterPrefixVariable(types.VarPrefixHttpCookie,
+		variable.NewBasicVariable(types.VarPrefixHttpCookie, nil, cookieGetter, nil, 0))
 
-	variable.RegisterProtocolResource(protocol.HTTP2, api.IP, types.VarIP)
 	variable.RegisterProtocolResource(protocol.HTTP2, api.HEADER, types.VarProtocolRequestHeader)
+	variable.RegisterProtocolResource(protocol.HTTP2, api.COOKIE, types.VarPrefixHttpCookie)
+}
+
+func cookieGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
+	return "", nil
 }
 
 func headerGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
@@ -52,19 +47,4 @@ func headerGetter(ctx context.Context, value *variable.IndexedValue, data interf
 	}
 
 	return header, nil
-}
-
-func connectionIPGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
-	remoteAddr := mosnctx.Get(ctx, types.ContextRemoteAddr)
-	if remoteAddr != nil {
-		log.DefaultLogger.Infof("[train] %s", remoteAddr.(net.Addr).String())
-	}
-
-	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
-	if oriRemoteAddr == nil {
-		log.DefaultLogger.Infof("[train] ori add is nil")
-		return "", nil
-	}
-
-	return oriRemoteAddr.(net.Addr).String(), nil
 }

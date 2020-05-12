@@ -40,8 +40,8 @@
 todo
 [x]maglev库性能分析
 [ ]host down 选择segmenttree 返回临近节点
-[ ]不拼接, 直接使用单个hash因子
+[x]不拼接, 直接使用单个hash因子
 [ ]mosn 原生配置调通
-[ ]http http2 tcp协议 maglev 逻辑调通 -> find tcp routing and get mgv info in route
+[ ]http2 cookie 逻辑
 [ ]mgv info not match, prevent returning nil host pkg/upstream/cluster/loadbalancer.go:215 when choosing host
 [ ]单元测试

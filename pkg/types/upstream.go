@@ -193,9 +193,9 @@ type ClusterInfo interface {
 
 	// LbOriDstInfo returns the load balancer oridst config
 	LbOriDstInfo() LBOriDstInfo
-
-	// LbMaglevInfo returns the load balancer oridst config
-	LbMaglevInfo() LBMaglevInfo
+	//
+	//// LbMaglevInfo returns the load balancer oridst config
+	//LbMaglevInfo() LBMaglevInfo
 }
 
 // ResourceManager manages different types of Resource

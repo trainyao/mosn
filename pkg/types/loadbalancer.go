@@ -19,7 +19,6 @@ package types
 
 import (
 	"context"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"net"
 	"time"
 
@@ -35,6 +34,14 @@ const (
 	Random       LoadBalancerType = "LB_RANDOM"
 	ORIGINAL_DST LoadBalancerType = "LB_ORIGINAL_DST"
 	Maglev       LoadBalancerType = "LB_MAGLEV"
+)
+
+type MaglevType string
+
+const (
+	MaglevType_header      MaglevType = "header"
+	MaglevType_http_cookie MaglevType = "http_cookie"
+	MaglevType_source_IP   MaglevType = "source_ip"
 )
 
 // LoadBalancer is a upstream load balancer.
@@ -91,7 +98,7 @@ type LBSubsetEntry interface {
 
 type LBMaglevInfo interface {
 	// MaglevInfo type
-	Type() v2.MaglevType
+	Type() MaglevType
 	api.ConsistentHashCriteria
 }
 
@@ -99,8 +106,8 @@ type LBHeaderMaglevInfo struct {
 	Key string
 }
 
-func (m *LBHeaderMaglevInfo) Type() v2.MaglevType {
-	return v2.MaglevType_header
+func (m *LBHeaderMaglevInfo) Type() MaglevType {
+	return MaglevType_header
 }
 func (m *LBHeaderMaglevInfo) HashType() api.ConsistentHashType{
 	return api.Maglev
@@ -112,8 +119,8 @@ type LBHttpCookieMaglevInfo struct {
 	TTL  time.Duration
 }
 
-func (m *LBHttpCookieMaglevInfo) Type() v2.MaglevType {
-	return v2.MaglevType_http_cookie
+func (m *LBHttpCookieMaglevInfo) Type() MaglevType {
+	return MaglevType_http_cookie
 }
 func (m *LBHttpCookieMaglevInfo) HashType() api.ConsistentHashType{
 	return api.Maglev
@@ -122,8 +129,8 @@ func (m *LBHttpCookieMaglevInfo) HashType() api.ConsistentHashType{
 type LBSourceIPMaglevInfo struct {
 }
 
-func (m *LBSourceIPMaglevInfo) Type() v2.MaglevType {
-	return v2.MaglevType_source_IP
+func (m *LBSourceIPMaglevInfo) Type() MaglevType {
+	return MaglevType_source_IP
 }
 func (m *LBSourceIPMaglevInfo) HashType() api.ConsistentHashType{
 	return api.Maglev

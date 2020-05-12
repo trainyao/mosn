@@ -23,12 +23,10 @@ import (
 	"github.com/dchest/siphash"
 	"math/rand"
 	"mosn.io/mosn/pkg"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/variable"
 	"net"
 	"runtime/debug"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -140,55 +138,12 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 	return len(lb.hosts.Hosts())
 }
 
-func NewMaglevInfo(config *v2.LBMaglevConfig) (i types.LBMaglevInfo) {
-	switch config.Type {
-	case v2.MaglevType_header:
-		if f, ok := config.HashFactor.(*v2.HeaderMaglevHashFactor); !ok {
-			log.Proxy.Warnf(nil, "header %s and hash factor not match", config.Type)
-			return nil
-		} else {
-			i = &types.LBHeaderMaglevInfo{Key: f.HeaderKey}
-		}
-	case v2.MaglevType_http_cookie:
-		if f, ok := config.HashFactor.(*v2.HttpCookieMaglevHashFactor); !ok {
-			log.Proxy.Warnf(nil, "header %s and hash factor not match", config.Type)
-			return nil
-		} else {
-			i = &types.LBHttpCookieMaglevInfo{
-				Name: f.CookieName,
-				Path: f.CookiePath,
-				TTL:  f.TTL,
-			}
-		}
-	case v2.MaglevType_source_IP:
-		if _, ok := config.HashFactor.(*v2.SourceIPMaglevHashFactor); !ok {
-			log.Proxy.Warnf(nil, "header %s and hash factor not match", config.Type)
-			return nil
-		} else {
-			i = &types.LBSourceIPMaglevInfo{}
-		}
-	default:
-		log.Proxy.Warnf(nil, "not found maglev factor type %s", config.Type)
-	}
-
-	return nil
-}
-
 func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
 	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in new %s", string(debug.Stack()))
 
-	hosts := []string{}
-	for _, h := range set.HealthyHosts() {
-		hosts = append(hosts, h.AddressString())
-	}
-
-	log.DefaultLogger.Infof("[train] in new %s", strings.Join(hosts, ","))
-
-	healthyHosts := set.HealthyHosts()
-	names := []string{}
-
 	var table *maglev.Table
-	for _, host := range healthyHosts {
+	names := []string{}
+	for _, host := range set.Hosts(){
 		names = append(names, host.Hostname())
 	}
 	if len(names) != 0 {
@@ -197,23 +152,19 @@ func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
 
 	return &maglevLoadBalancer{
 		hosts:        set,
-		healthyHosts: healthyHosts,
 		maglev:       table,
-		rand:         rand.NewSource(int64(time.Now().Nanosecond())),
 	}
 }
 
 type maglevLoadBalancer struct {
 	// TODO train 确定 host 变化会不会动态变化 hostset.healthyhosts
-	mutex        sync.Mutex
 	hosts        types.HostSet
-	healthyHosts []types.Host
 	maglev       *maglev.Table
-	rand         rand.Source
 }
 
 func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in choose")
+
 	// host empty, maglev info may be nil
 	if lb.maglev == nil {
 		log.DefaultLogger.Infof(pkg.TrainLogFormat+"lb mgv info == nil")
@@ -233,22 +184,17 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 	}
 
 	hash := lb.generateChooseHostHash(context, c)
+	index := lb.maglev.Lookup(hash)
+	chosen := lb.hosts.Hosts()[index]
 
-	// TODO train 确定 长连接 upstream 变化
-	// TODO train 确定 upstream 下架之后变化
-
-	lb.mutex.Lock()
-	defer lb.mutex.Unlock()
-	if len(lb.healthyHosts) == 0 {
-		return nil
+	if !chosen.Health() {
+		chosen = lb.chooseHostFromSegmentTree()
 	}
 
-	index := lb.maglev.Lookup(hash)
-
 	log.Proxy.Infof(nil, "[lb][maglev][train] get index %d host %s %s",
-		index, lb.healthyHosts[index].Hostname(), lb.healthyHosts[index].AddressString())
+		index, chosen.Hostname(), chosen.AddressString())
 
-	return lb.healthyHosts[index]
+	return chosen
 }
 
 func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerContext, info types.LBMaglevInfo) uint64 {
@@ -272,20 +218,16 @@ func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerC
 		}
 	case *types.LBSourceIPMaglevInfo:
 		log.DefaultLogger.Infof("[train] generate ip hash")
-
 		return getHashByAddr(context.DownstreamConnection().RemoteAddr())
 	case *types.LBHttpCookieMaglevInfo:
 		log.DefaultLogger.Infof("[train] generate cookie hash")
 		info := info.(*types.LBHttpCookieMaglevInfo)
 		cookieName := info.Name
-		//cookiePath := info.Path
-		//cookieTTL := info.TTL
-		//dsn := fmt.Sprintf("cookie://%s/%s?ttl=%s", cookiePath, cookieName, cookieTTL)
-		dsn := fmt.Sprintf("%s%s", types.VarPrefixHttpCookie, cookieName)
+		protocolVarKey := fmt.Sprintf("%s%s", types.VarPrefixHttpCookie, cookieName)
 
-		log.DefaultLogger.Infof(pkg.TrainLogFormat+"cookie dsn %s", dsn)
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"cookie protocolVarKey %s", protocolVarKey)
 
-		cookieValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.COOKIE, dsn)
+		cookieValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.COOKIE, protocolVarKey)
 		log.DefaultLogger.Infof(pkg.TrainLogFormat+"cookie value %s", cookieValue)
 		if err == nil {
 			h := getHashByString(fmt.Sprintf("%s&value=%s", cookieValue))
@@ -304,7 +246,11 @@ func (lb *maglevLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) 
 }
 
 func (lb *maglevLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
-	return len(lb.healthyHosts)
+	return len(lb.hosts.HealthyHosts())
+}
+
+func (lb *maglevLoadBalancer) chooseHostFromSegmentTree() types.Host {
+	return nil
 }
 
 func getHashByAddr(addr net.Addr) (hash uint64) {
