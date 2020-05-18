@@ -10,19 +10,19 @@ import (
 func Test_segmentTree(t *testing.T) {
 	ns := []Node{
 		{
-			value:      1,
-			rangeStart: 0,
-			rangeEnd:   1,
+			Value:      1,
+			RangeStart: 0,
+			RangeEnd:   1,
 		},
 		{
-			value:      2,
-			rangeStart: 1,
-			rangeEnd:   2,
+			Value:      2,
+			RangeStart: 1,
+			RangeEnd:   2,
 		},
 		{
-			value:      3,
-			rangeStart: 2,
-			rangeEnd:   3,
+			Value:      3,
+			RangeStart: 2,
+			RangeEnd:   3,
 		},
 	}
 
@@ -57,24 +57,24 @@ func Test_segmentTree(t *testing.T) {
 
 	ns = []Node{
 		{
-			value:      1,
-			rangeStart: 0,
-			rangeEnd:   1,
+			Value:      1,
+			RangeStart: 0,
+			RangeEnd:   1,
 		},
 		{
-			value:      2,
-			rangeStart: 1,
-			rangeEnd:   2,
+			Value:      2,
+			RangeStart: 1,
+			RangeEnd:   2,
 		},
 		{
-			value:      3,
-			rangeStart: 2,
-			rangeEnd:   3,
+			Value:      3,
+			RangeStart: 2,
+			RangeEnd:   3,
 		},
 		{
-			value:      4,
-			rangeStart: 3,
-			rangeEnd:   4,
+			Value:      4,
+			RangeStart: 3,
+			RangeEnd:   4,
 		},
 	}
 
@@ -113,24 +113,24 @@ func Test_segmentTree(t *testing.T) {
 func Test_updateTree(t *testing.T) {
 	ns := []Node{
 		{
-			value:      1,
-			rangeStart: 0,
-			rangeEnd:   1,
+			Value:      1,
+			RangeStart: 0,
+			RangeEnd:   1,
 		},
 		{
-			value:      2,
-			rangeStart: 1,
-			rangeEnd:   2,
+			Value:      2,
+			RangeStart: 1,
+			RangeEnd:   2,
 		},
 		{
-			value:      3,
-			rangeStart: 2,
-			rangeEnd:   3,
+			Value:      3,
+			RangeStart: 2,
+			RangeEnd:   3,
 		},
 		{
-			value:      4,
-			rangeStart: 3,
-			rangeEnd:   4,
+			Value:      4,
+			RangeStart: 3,
+			RangeEnd:   4,
 		},
 	}
 
@@ -144,7 +144,7 @@ func Test_updateTree(t *testing.T) {
 		t.FailNow()
 	}
 
-	leaf.value = 10
+	leaf.Value = 10
 	tree.Update(leaf)
 
 	if !reflect.DeepEqual(tree.data, []interface{}{

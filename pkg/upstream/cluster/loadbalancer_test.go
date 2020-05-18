@@ -2,9 +2,10 @@ package cluster
 
 import (
 	"encoding/binary"
-	"github.com/dchest/siphash"
 	"net"
 	"testing"
+
+	"github.com/dchest/siphash"
 )
 
 func Test_test(t *testing.T) {
@@ -53,4 +54,8 @@ func Test_test(t *testing.T) {
 	//binary.LittleEndian.PutUint64(s, a)
 	//
 	//print(string(s))
+}
+
+func Test_segmentTreeFallbackLogic(t *testing.T) {
+
 }

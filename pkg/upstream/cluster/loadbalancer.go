@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/dchest/siphash"
+	"math"
 	"math/rand"
 	"mosn.io/mosn/pkg"
 	"mosn.io/mosn/pkg/log"
@@ -151,12 +152,46 @@ func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
 	if len(names) != 0 {
 		table = maglev.New(names, maglev.SmallM)
 		// TODO build tree, devide hash
-		tree  = segmenttree.NewTree()
+		nodes := []segmenttree.Node{}
+		step := math.MaxUint64 / len(names)
+		for index := range names {
+			nodes = append(nodes, segmenttree.Node{
+				Value:      index,
+				RangeStart: uint64(index * step),
+				RangeEnd:   uint64((index + 1) * step),
+			})
+		}
+		updateFunc := func(lv, rv interface{}) interface{} {
+			if lv != nil {
+				leftIndex, ok := lv.(int)
+				if !ok {
+					return nil
+				}
+				if set.Hosts()[leftIndex].Health() {
+					return leftIndex
+				}
+			}
+
+			if rv != nil {
+				rightIndex, ok := rv.(int)
+				if !ok {
+					return nil
+				}
+
+				if set.Hosts()[rightIndex].Health() {
+					return rightIndex
+				}
+			}
+
+			return nil
+		}
+
+		tree = segmenttree.NewTree(nodes, updateFunc)
 	}
 
 	return &maglevLoadBalancer{
-		hosts:  set,
-		maglev: table,
+		hosts:           set,
+		maglev:          table,
 		fallbackSegTree: tree,
 	}
 }
@@ -257,8 +292,25 @@ func (lb *maglevLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 
 func (lb *maglevLoadBalancer) chooseHostFromSegmentTree(index int) types.Host {
 	leaf := lb.fallbackSegTree.Leaf(index)
+	leaf = lb.fallbackSegTree.FindParent(leaf)
+	var host types.Host
+	for {
+		hostIndex, ok := leaf.Value.(int)
+		if ok {
+			if lb.hosts.Hosts()[hostIndex].Health() {
+				host = lb.hosts.Hosts()[hostIndex]
+				break
+			}
+		}
 
-	return nil
+		if leaf.IsRoot() {
+			break
+		}
+
+		leaf = lb.fallbackSegTree.FindParent(leaf)
+	}
+
+	return host
 }
 
 func getHashByAddr(addr net.Addr) (hash uint64) {

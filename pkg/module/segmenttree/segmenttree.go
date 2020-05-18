@@ -17,17 +17,17 @@ func (t *Tree) Leaf(index int) *Node {
 	rangeEnd := t.rangeEnd[leafIndex]
 
 	return &Node{
-		value:      data,
+		Value:      data,
 		index:      leafIndex,
-		rangeStart: rangeStart,
-		rangeEnd:   rangeEnd,
+		RangeStart: rangeStart,
+		RangeEnd:   rangeEnd,
 	}
 }
 
 func (t *Tree) Update(n *Node) {
 	index := n.index
 	// update current node
-	t.data[index] = n.value
+	t.data[index] = n.Value
 
 	// find root index
 	leftIndex := index
@@ -52,10 +52,10 @@ func (t *Tree) Update(n *Node) {
 }
 
 type Node struct {
-	value      interface{}
+	Value      interface{}
 	index      int
-	rangeStart uint64
-	rangeEnd   uint64
+	RangeStart uint64
+	RangeEnd   uint64
 }
 
 func NewTree(nodes []Node, updateFunc SegmentTreeUpdateFunc) *Tree {
@@ -79,9 +79,9 @@ func build(nodes []Node, updateFunc SegmentTreeUpdateFunc) ([]interface{}, map[i
 	rangeEnd := make(map[int]uint64)
 
 	for i := 0; i < count; i++ {
-		data[count+i] = nodes[i].value
-		rangeStart[count+i] = nodes[i].rangeStart
-		rangeEnd[count+i] = nodes[i].rangeEnd
+		data[count+i] = nodes[i].Value
+		rangeStart[count+i] = nodes[i].RangeStart
+		rangeEnd[count+i] = nodes[i].RangeEnd
 	}
 
 	n := 2*count - 1
@@ -104,29 +104,29 @@ func build(nodes []Node, updateFunc SegmentTreeUpdateFunc) ([]interface{}, map[i
 		}
 
 		//left := &Node{
-		//	value:      data[leftIndex],
+		//	Value:      data[leftIndex],
 		//	index:      leftIndex,
-		//	rangeStart: rangeStart[leftIndex],
-		//	rangeEnd:   rangeEnd[leftIndex],
+		//	RangeStart: RangeStart[leftIndex],
+		//	RangeEnd:   RangeEnd[leftIndex],
 		//}
 		//right := &Node{
-		//	value:      data[rightIndex],
+		//	Value:      data[rightIndex],
 		//	index:      rightIndex,
-		//	rangeStart: rangeStart[rightIndex],
-		//	rangeEnd:   rangeEnd[rightIndex],
+		//	RangeStart: RangeStart[rightIndex],
+		//	RangeEnd:   RangeEnd[rightIndex],
 		//}
 		//root := &Node{
-		//	value:      data[rootIndex],
+		//	Value:      data[rootIndex],
 		//	index:      rootIndex,
-		//	rangeStart: rangeStart[rootIndex],
-		//	rangeEnd:   rangeEnd[rootIndex],
+		//	RangeStart: RangeStart[rootIndex],
+		//	RangeEnd:   RangeEnd[rootIndex],
 		//}
 		//
 		//updateFunc(root, left, right)
 		//
-		//data[rootIndex] = root.value
-		//rangeStart[rootIndex] = root.rangeStart
-		//rangeEnd[rootIndex] = root.rangeEnd
+		//data[rootIndex] = root.Value
+		//RangeStart[rootIndex] = root.RangeStart
+		//RangeEnd[rootIndex] = root.RangeEnd
 
 		n -= 2
 
@@ -141,10 +141,10 @@ func build(nodes []Node, updateFunc SegmentTreeUpdateFunc) ([]interface{}, map[i
 func (t *Tree) FindParent(currentNode *Node) *Node {
 	rootIndex := currentNode.index / 2
 	root := &Node{
-		value:      t.data[rootIndex],
+		Value:      t.data[rootIndex],
 		index:      rootIndex,
-		rangeStart: t.rangeStart[rootIndex],
-		rangeEnd:   t.rangeEnd[rootIndex],
+		RangeStart: t.rangeStart[rootIndex],
+		RangeEnd:   t.rangeEnd[rootIndex],
 	}
 	return root
 }
