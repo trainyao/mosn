@@ -153,12 +153,12 @@ func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
 		table = maglev.New(names, maglev.SmallM)
 		// TODO build tree, devide hash
 		nodes := []segmenttree.Node{}
-		step := math.MaxUint64 / len(names)
+		step := math.MaxUint64 / uint64(len(names))
 		for index := range names {
 			nodes = append(nodes, segmenttree.Node{
 				Value:      index,
-				RangeStart: uint64(index * step),
-				RangeEnd:   uint64((index + 1) * step),
+				RangeStart: uint64(index) * step,
+				RangeEnd:   uint64(index + 1) * step,
 			})
 		}
 		updateFunc := func(lv, rv interface{}) interface{} {
@@ -271,7 +271,7 @@ func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerC
 		cookieValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.COOKIE, protocolVarKey)
 		log.DefaultLogger.Infof(pkg.TrainLogFormat+"cookie value %s", cookieValue)
 		if err == nil {
-			h := getHashByString(fmt.Sprintf("%s&value=%s", cookieValue))
+			h := getHashByString(fmt.Sprintf("%s=%s", cookieName, cookieValue))
 			return h
 		}
 	default:

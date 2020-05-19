@@ -27,6 +27,15 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+type mockHostSet struct {
+	types.HostSet
+	hosts []types.Host
+}
+
+func (hs *mockHostSet) Hosts() []types.Host {
+	return hs.hosts
+}
+
 type mockHost struct {
 	name       string
 	addr       string

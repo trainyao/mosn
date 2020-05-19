@@ -2,10 +2,12 @@ package cluster
 
 import (
 	"encoding/binary"
+	"fmt"
 	"net"
 	"testing"
 
 	"github.com/dchest/siphash"
+	"mosn.io/mosn/pkg/types"
 )
 
 func Test_test(t *testing.T) {
@@ -56,6 +58,40 @@ func Test_test(t *testing.T) {
 	//print(string(s))
 }
 
-func Test_segmentTreeFallbackLogic(t *testing.T) {
+func Test_segmentTreeFallback(t *testing.T) {
+	hosts := []types.Host{}
+	hostCount := 10
+	for i := 0; i < hostCount; i++ {
+		h := &mockHost{
+			name: fmt.Sprintf("host-%d", i),
+			addr: fmt.Sprintf("127.0.0.%d", i),
+		}
+		hosts = append(hosts, h)
+	}
+	hostSet := &mockHostSet{
+		hosts: hosts,
+	}
 
+	mgv := newMaglevLoadBalancer(hostSet)
+	hostSet.hosts[8].SetHealthFlag(types.FAILED_ACTIVE_HC)
+	h := hostSet.hosts[8].Health()
+	print(h)
+
+	node := mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(8)
+	mgv.(*maglevLoadBalancer).fallbackSegTree.Update(node)
+	print(1)
+
+	hostSet.hosts[6].SetHealthFlag(types.FAILED_ACTIVE_HC)
+	h = hostSet.hosts[6].Health()
+	print(h)
+	hostSet.hosts[7].SetHealthFlag(types.FAILED_ACTIVE_HC)
+	h = hostSet.hosts[7].Health()
+	print(h)
+
+	node = mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(6)
+	mgv.(*maglevLoadBalancer).fallbackSegTree.Update(node)
+	print(1)
+
+	i := mgv.(*maglevLoadBalancer).chooseHostFromSegmentTree(5)
+	print(i)
 }
