@@ -28,7 +28,6 @@ import (
 	"mosn.io/mosn/pkg/module/segmenttree"
 	"mosn.io/mosn/pkg/variable"
 	"net"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -141,7 +140,12 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 }
 
 func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
-	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in new %s", string(debug.Stack()))
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in new")
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in new len host %d len health host %d",
+		len(set.Hosts()), len(set.HealthyHosts()))
+	for _, h := range set.Hosts() {
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"h %s", h.SetHealthFlag().AddressString())
+	}
 
 	var table *maglev.Table
 	var tree *segmenttree.Tree
@@ -158,7 +162,7 @@ func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
 			nodes = append(nodes, segmenttree.Node{
 				Value:      index,
 				RangeStart: uint64(index) * step,
-				RangeEnd:   uint64(index + 1) * step,
+				RangeEnd:   uint64(index+1) * step,
 			})
 		}
 		updateFunc := func(lv, rv interface{}) interface{} {
@@ -189,11 +193,20 @@ func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
 		tree = segmenttree.NewTree(nodes, updateFunc)
 	}
 
-	return &maglevLoadBalancer{
+	mgv := &maglevLoadBalancer{
 		hosts:           set,
 		maglev:          table,
 		fallbackSegTree: tree,
 	}
+
+	if len(set.Hosts()) >= 2 {
+		h := mgv.chooseHostFromSegmentTree(1)
+		if h != nil {
+			log.DefaultLogger.Infof(pkg.TrainLogFormat+" 123 %+v %+v", h.AddressString(), h.Health())
+		}
+	}
+
+	return mgv
 }
 
 type maglevLoadBalancer struct {
@@ -214,7 +227,7 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 
 	ch := context.ConsistentHashCriteria()
 	if ch == nil || ch.HashType() != api.Maglev {
-		log.DefaultLogger.Infof(pkg.TrainLogFormat + "ch != mgv info ")
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"ch != mgv info %s", ch.HashType())
 		return nil
 	}
 
@@ -291,7 +304,12 @@ func (lb *maglevLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 }
 
 func (lb *maglevLoadBalancer) chooseHostFromSegmentTree(index int) types.Host {
+	if lb.fallbackSegTree == nil {
+		return nil
+	}
+
 	leaf := lb.fallbackSegTree.Leaf(index)
+	// leaf already unhealthy, find parent for it
 	leaf = lb.fallbackSegTree.FindParent(leaf)
 	var host types.Host
 	for {

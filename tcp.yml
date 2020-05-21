@@ -45,10 +45,17 @@ spec:
       serviceAccountName: bookinfo-tcp
       containers:
       - name: tcp
-        image: trainyao/gloo_in_none_kubernetes_env_kv
+        image: trainyao/gloo_in_none_kubernetes_env_kv/http_probe
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8081
+        readinessProbe:
+          failureThreshold: 1
+          periodSeconds: 2
+          httpGet:
+            port: 8082
+            path: /health
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -72,7 +79,14 @@ spec:
       serviceAccountName: bookinfo-tcp
       containers:
         - name: tcp
-          image: trainyao/gloo_in_none_kubernetes_env_kv
+          image: trainyao/gloo_in_none_kubernetes_env_kv/http_probe
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081
+          readinessProbe:
+            failureThreshold: 1
+            periodSeconds: 2
+            httpGet:
+              port: 8082
+              path: /health
+
