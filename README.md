@@ -39,7 +39,7 @@
 
 todo
 [x]maglev库性能分析
-[ ]host down 选择segmenttree 返回临近节点
+[x]host down 选择segmenttree 返回临近节点
 [x]不拼接, 直接使用单个hash因子
 [ ]mosn 原生配置调通
 [ ]http2 cookie 逻辑

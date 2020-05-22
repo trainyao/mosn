@@ -1,5 +1,10 @@
 package segmenttree
 
+import (
+	"fmt"
+	"sync"
+)
+
 type SegmentTreeUpdateFunc func(leftChildData, rightChildData interface{}) (currentNodeData interface{})
 
 type Tree struct {
@@ -8,9 +13,15 @@ type Tree struct {
 	rangeEnd   map[int]uint64
 	leafCount  int
 	updateFunc SegmentTreeUpdateFunc
+	// go-routine for update
+	updateMux     sync.Mutex
 }
 
-func (t *Tree) Leaf(index int) *Node {
+func (t *Tree) Leaf(index int) (*Node, error) {
+	if index >= t.leafCount {
+		return nil, fmt.Errorf("index %d out of range: %d", index, t.leafCount)
+	}
+
 	leafIndex := t.leafCount + index
 	data := t.data[leafIndex]
 	rangeStart := t.rangeStart[leafIndex]
@@ -21,10 +32,12 @@ func (t *Tree) Leaf(index int) *Node {
 		index:      leafIndex,
 		RangeStart: rangeStart,
 		RangeEnd:   rangeEnd,
-	}
+	}, nil
 }
 
 func (t *Tree) Update(n *Node) {
+	t.updateMux.Lock()
+	defer t.updateMux.Unlock()
 	index := n.index
 	// update current node
 	t.data[index] = n.Value
@@ -62,6 +75,7 @@ func NewTree(nodes []Node, updateFunc SegmentTreeUpdateFunc) *Tree {
 	t := &Tree{
 		updateFunc: updateFunc,
 		leafCount:  len(nodes),
+		updateMux:  sync.Mutex{},
 	}
 	t.data, t.rangeStart, t.rangeEnd = build(nodes, updateFunc)
 

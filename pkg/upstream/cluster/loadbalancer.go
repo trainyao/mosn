@@ -144,7 +144,7 @@ func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
 	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in new len host %d len health host %d",
 		len(set.Hosts()), len(set.HealthyHosts()))
 	for _, h := range set.Hosts() {
-		log.DefaultLogger.Infof(pkg.TrainLogFormat+"h %s", h.SetHealthFlag().AddressString())
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"h %s", h.AddressString())
 	}
 
 	var table *maglev.Table
@@ -308,7 +308,15 @@ func (lb *maglevLoadBalancer) chooseHostFromSegmentTree(index int) types.Host {
 		return nil
 	}
 
-	leaf := lb.fallbackSegTree.Leaf(index)
+	leaf, err := lb.fallbackSegTree.Leaf(index)
+	if err != nil {
+		log.DefaultLogger.Errorf("[proxy] [maglev] [segmenttree] find leaf of index %d failed, err:%+v", index, err)
+		return nil
+	}
+
+	// update tree value when
+	lb.fallbackSegTree.Update(leaf)
+
 	// leaf already unhealthy, find parent for it
 	leaf = lb.fallbackSegTree.FindParent(leaf)
 	var host types.Host

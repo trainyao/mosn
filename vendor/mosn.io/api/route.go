@@ -126,6 +126,10 @@ type MetadataMatchCriteria interface {
 	MergeMatchCriteria(metadataMatches map[string]interface{}) MetadataMatchCriteria
 }
 
+type HashPolicy struct {
+
+}
+
 type ConsistentHashCriteria interface {
 	HashType() ConsistentHashType
 }

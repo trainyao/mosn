@@ -77,7 +77,11 @@ func Test_segmentTreeFallback(t *testing.T) {
 	h := hostSet.hosts[8].Health()
 	print(h)
 
-	node := mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(8)
+	node, err := mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(8)
+	if err != nil {
+		t.Error(err)
+	}
+
 	mgv.(*maglevLoadBalancer).fallbackSegTree.Update(node)
 	print(1)
 
@@ -88,7 +92,7 @@ func Test_segmentTreeFallback(t *testing.T) {
 	h = hostSet.hosts[7].Health()
 	print(h)
 
-	node = mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(6)
+	node, err = mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(6)
 	mgv.(*maglevLoadBalancer).fallbackSegTree.Update(node)
 	print(1)
 

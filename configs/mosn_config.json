@@ -18,7 +18,10 @@
                     "prefix": "/"
                   },
                   "route": {
-                    "cluster_name": "serverCluster"
+                    "cluster_name": "serverCluster",
+                    "hash_policy": [{
+                      ""
+                    }]
                   }
                 }
               ]
