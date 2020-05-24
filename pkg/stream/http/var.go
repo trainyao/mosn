@@ -28,8 +28,12 @@ import (
 )
 
 const (
+	//headerIndex = len(types.VarPrefixHttpHeader)
+	//argIndex    = len(types.VarPrefixHttpArg)
+	VarRequestMethod = "http_request_method"
+	VarRequestLength = "http_request_length"
+
 	headerIndex = len(types.VarPrefixHttpHeader)
-	argIndex    = len(types.VarPrefixHttpArg)
 	cookieIndex = len(types.VarPrefixHttpCookie)
 )
 
@@ -64,6 +68,8 @@ func init() {
 	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarHttpRequestPath)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarHttpRequestUri)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarHttpRequestArg)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.COOKIE, types.VarProtocolHttpCookie)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.HEADER, types.VarProtocolRequestHeader)
 }
 
 func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
