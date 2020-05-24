@@ -24,6 +24,7 @@ import (
 	"math"
 	"math/rand"
 	"mosn.io/mosn/pkg"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/segmenttree"
 	"mosn.io/mosn/pkg/variable"
@@ -59,6 +60,7 @@ func init() {
 }
 
 func NewLoadBalancer(lbType types.LoadBalancerType, hosts types.HostSet) types.LoadBalancer {
+	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in new lb")
 	if f, ok := lbFactories[lbType]; ok {
 		return f(hosts)
 	}
@@ -141,8 +143,6 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 
 func newMaglevLoadBalancer(set types.HostSet) types.LoadBalancer {
 	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in new")
-	log.DefaultLogger.Infof(pkg.TrainLogFormat+"in new len host %d len health host %d",
-		len(set.Hosts()), len(set.HealthyHosts()))
 	for _, h := range set.Hosts() {
 		log.DefaultLogger.Infof(pkg.TrainLogFormat+"h %s", h.AddressString())
 	}
@@ -227,20 +227,15 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 
 	ch := context.ConsistentHashCriteria()
 	if ch == nil || ch.HashType() != api.Maglev {
-		log.DefaultLogger.Infof(pkg.TrainLogFormat+"ch != mgv info %s", ch.HashType())
+		log.DefaultLogger.Infof(pkg.TrainLogFormat+"ch != mgv info or ch is nil")
 		return nil
 	}
 
-	c, ok := ch.(types.LBMaglevInfo)
-	if !ok {
-		log.DefaultLogger.Infof(pkg.TrainLogFormat + "type not mgv info")
-		return nil
-	}
-
-	hash := lb.generateChooseHostHash(context, c)
+	hash := lb.generateChooseHostHash(context, ch)
 	index := lb.maglev.Lookup(hash)
 	chosen := lb.hosts.Hosts()[index]
 
+	// fallback
 	if !chosen.Health() {
 		chosen = lb.chooseHostFromSegmentTree(index)
 	}
@@ -251,12 +246,12 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 	return chosen
 }
 
-func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerContext, info types.LBMaglevInfo) uint64 {
+func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerContext, info api.ConsistentHashCriteria) uint64 {
 	switch info.(type) {
-	case *types.LBHeaderMaglevInfo:
+	case *v2.HeaderHashPolicy:
 		log.DefaultLogger.Infof("[train] generate header hash")
 
-		headerKey := info.(*types.LBHeaderMaglevInfo).Key
+		headerKey := info.(*v2.HeaderHashPolicy).Key
 		protocolVarHeaderKey := fmt.Sprintf("%s%s", types.VarProtocolRequestHeader, headerKey)
 		log.DefaultLogger.Infof("[train] header key %s", protocolVarHeaderKey)
 
@@ -270,12 +265,12 @@ func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerC
 		} else {
 			log.DefaultLogger.Infof(pkg.TrainLogFormat+"%+v", err)
 		}
-	case *types.LBSourceIPMaglevInfo:
+	case *v2.SourceIPHashPolicy:
 		log.DefaultLogger.Infof("[train] generate ip hash")
 		return getHashByAddr(context.DownstreamConnection().RemoteAddr())
-	case *types.LBHttpCookieMaglevInfo:
+	case *v2.HttpCookieHashPolicy:
 		log.DefaultLogger.Infof("[train] generate cookie hash")
-		info := info.(*types.LBHttpCookieMaglevInfo)
+		info := info.(*v2.HttpCookieHashPolicy)
 		cookieName := info.Name
 		protocolVarKey := fmt.Sprintf("%s%s", types.VarPrefixHttpCookie, cookieName)
 
@@ -321,11 +316,13 @@ func (lb *maglevLoadBalancer) chooseHostFromSegmentTree(index int) types.Host {
 	leaf = lb.fallbackSegTree.FindParent(leaf)
 	var host types.Host
 	for {
-		hostIndex, ok := leaf.Value.(int)
-		if ok {
-			if lb.hosts.Hosts()[hostIndex].Health() {
-				host = lb.hosts.Hosts()[hostIndex]
-				break
+		if leaf.Value != nil {
+			hostIndex, ok := leaf.Value.(int)
+			if ok {
+				if lb.hosts.Hosts()[hostIndex].Health() {
+					host = lb.hosts.Hosts()[hostIndex]
+					break
+				}
 			}
 		}
 

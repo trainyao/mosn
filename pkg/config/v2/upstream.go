@@ -83,7 +83,6 @@ type Cluster struct {
 	Spec                 ClusterSpecInfo     `json:"spec,omitempty"`
 	LBSubSetConfig       LBSubsetConfig      `json:"lb_subset_config,omitempty"`
 	LBOriDstConfig       LBOriDstConfig      `json:"original_dst_lb_config,omitempty"`
-	//LBMaglevConfig       LBMaglevConfig      `json:"maglev_lb_config,omitempty"`
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`

@@ -1,64 +1,123 @@
 package cluster
 
 import (
-	"encoding/binary"
+	"context"
 	"fmt"
-	"net"
+	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/variable"
+	"reflect"
 	"testing"
+	"time"
 
-	"github.com/dchest/siphash"
+	//_ "mosn.io/mosn/pkg/stream/http"
+	//_ "mosn.io/mosn/pkg/stream/http2"
 	"mosn.io/mosn/pkg/types"
 )
 
-func Test_test(t *testing.T) {
-	hash := siphash.Hash(0xbeefcafebabedead, 0, []byte("1"))
-	// 15836395326274861737
-	print(hash)
+func Test_maglevLoadBalancer(t *testing.T) {
+	hostSet := getMockHostSet()
+	lb := newMaglevLoadBalancer(hostSet)
 
-	b := [4]byte{}
-	for index := range b {
-		b[index] = uint8(255)
+	testProtocol := "SomeProtocol"
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, types.ProtocolName(testProtocol))
+	lbctx := &mockLbContext{
+		context: ctx,
+		ch:      &v2.HeaderHashPolicy{Key: "header_key"},
 	}
 
-	//ip := make(net.IP, 4)
-	//binary.BigEndian.PutUint32(ip, nn)
-	//return ip
+	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+		return "test_header_value", nil
+	}
+	cookieGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+		return "test_cookie_value", nil
+	}
 
-	ip := net.IP(b[0:])
+	testFunc := func(expect []string) {
+		hostsResult := []string{}
+		// query 5 times
+		for i := 0; i < 5; i++ {
+			hostsResult = append(hostsResult, lb.ChooseHost(lbctx).Hostname())
+		}
+		if !reflect.DeepEqual(expect, hostsResult) {
+			t.Errorf("hosts expect to be %+v, get %+v", expect, hostsResult)
+			t.FailNow()
+		}
+	}
 
-	hash = (uint64(binary.LittleEndian.Uint32(b[0:])) << 16) | uint64(256)
+	// test header
+	headerValue := variable.NewBasicVariable("SomeProtocol_request_header_", nil, headerGetter, nil, 0)
+	variable.RegisterPrefixVariable(headerValue.Name(), headerValue)
+	variable.RegisterProtocolResource(types.ProtocolName(testProtocol), api.HEADER, types.VarProtocolRequestHeader)
+	testFunc([]string{
+		"host-8", "host-8", "host-8", "host-8", "host-8",
+	})
 
-	bb := [8]byte{}
-	binary.LittleEndian.PutUint64(bb[0:], hash)
+	// test cookie
 
-	print(string(bb[0:]))
+	cookieValue := variable.NewBasicVariable("SomeProtocol_http_cookie_", nil, cookieGetter, nil, 0)
+	variable.RegisterPrefixVariable(cookieValue.Name(), cookieValue)
+	variable.RegisterProtocolResource(types.ProtocolName(testProtocol), api.COOKIE, types.VarPrefixHttpCookie)
+	lbctx.ch = &v2.HttpCookieHashPolicy{
+		Name: "cookie_name",
+		Path: "cookie_path",
+		TTL:  api.DurationConfig{5 * time.Second},
+	}
+	testFunc([]string{
+		"host-0", "host-0", "host-0", "host-0", "host-0",
+	})
 
-	//s := ip.String()
-	ii := ip.To4()
-	print(ii)
-
-	//a := uint64(1)
-	//
-	//buffer := [64]byte{}
-	//s := buffer[0:]
-	//
-	//binary.LittleEndian.PutUint64(s, a)
-	//
-	//a = a << 16
-	//
-	//
-	//buffer = [64]byte{}
-	//s = buffer[0:]
-	//a = a | uint64(65535)
-	////print(a)
-	//
-	//
-	//binary.LittleEndian.PutUint64(s, a)
-	//
-	//print(string(s))
+	// test source IP
+	lbctx.ch = &v2.SourceIPHashPolicy{
+	}
+	testFunc([]string{
+		"host-8", "host-8", "host-8", "host-8", "host-8",
+	})
 }
 
 func Test_segmentTreeFallback(t *testing.T) {
+	hostSet := getMockHostSet()
+
+	mgv := newMaglevLoadBalancer(hostSet)
+
+	// set host-8 unhealthy
+	hostSet.hosts[8].SetHealthFlag(types.FAILED_ACTIVE_HC)
+	h := hostSet.hosts[8].Health()
+	if !assert.Falsef(t, h, "Health() should be false") {
+		t.FailNow()
+	}
+	node, err := mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(8)
+	if err != nil {
+		t.Error(err)
+	}
+	mgv.(*maglevLoadBalancer).fallbackSegTree.Update(node)
+
+	host := mgv.(*maglevLoadBalancer).chooseHostFromSegmentTree(8)
+	if !assert.Equalf(t, "host-9", host.Hostname(), "host name should be 'host-9'") {
+		t.FailNow()
+	}
+
+	// set host-9 unhealthy
+	hostSet.hosts[9].SetHealthFlag(types.FAILED_ACTIVE_HC)
+	h = hostSet.hosts[9].Health()
+	if !assert.Falsef(t, h, "Health() should be false") {
+		t.FailNow()
+	}
+	node, err = mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(9)
+	if err != nil {
+		t.Error(err)
+	}
+	mgv.(*maglevLoadBalancer).fallbackSegTree.Update(node)
+
+	host = mgv.(*maglevLoadBalancer).chooseHostFromSegmentTree(8)
+	if !assert.Equalf(t, "host-6", host.Hostname(), "host name should be 'host-6'") {
+		t.FailNow()
+	}
+}
+
+func getMockHostSet() *mockHostSet {
 	hosts := []types.Host{}
 	hostCount := 10
 	for i := 0; i < hostCount; i++ {
@@ -68,34 +127,7 @@ func Test_segmentTreeFallback(t *testing.T) {
 		}
 		hosts = append(hosts, h)
 	}
-	hostSet := &mockHostSet{
+	return &mockHostSet{
 		hosts: hosts,
 	}
-
-	mgv := newMaglevLoadBalancer(hostSet)
-	hostSet.hosts[8].SetHealthFlag(types.FAILED_ACTIVE_HC)
-	h := hostSet.hosts[8].Health()
-	print(h)
-
-	node, err := mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(8)
-	if err != nil {
-		t.Error(err)
-	}
-
-	mgv.(*maglevLoadBalancer).fallbackSegTree.Update(node)
-	print(1)
-
-	hostSet.hosts[6].SetHealthFlag(types.FAILED_ACTIVE_HC)
-	h = hostSet.hosts[6].Health()
-	print(h)
-	hostSet.hosts[7].SetHealthFlag(types.FAILED_ACTIVE_HC)
-	h = hostSet.hosts[7].Health()
-	print(h)
-
-	node, err = mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(6)
-	mgv.(*maglevLoadBalancer).fallbackSegTree.Update(node)
-	print(1)
-
-	i := mgv.(*maglevLoadBalancer).chooseHostFromSegmentTree(5)
-	print(i)
 }

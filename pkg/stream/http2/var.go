@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	headerIndex = len(types.VarProtocolRequestHeader)
+	headerIndex = len(types.VarPrefixHttp2Header)
 )
 
 func init() {
-	variable.RegisterPrefixVariable(types.VarProtocolRequestHeader,
-		variable.NewBasicVariable(types.VarProtocolRequestHeader, nil, headerGetter, nil, 0))
+	variable.RegisterPrefixVariable(types.VarPrefixHttp2Header,
+		variable.NewBasicVariable(types.VarPrefixHttp2Header, nil, headerGetter, nil, 0))
 	variable.RegisterPrefixVariable(types.VarPrefixHttpCookie,
 		variable.NewBasicVariable(types.VarPrefixHttpCookie, nil, cookieGetter, nil, 0))
 

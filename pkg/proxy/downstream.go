@@ -1320,23 +1320,32 @@ func (s *downStream) ConsistentHashCriteria() api.ConsistentHashCriteria {
 	for _, vh := range c.VirtualHosts {
 		log.DefaultLogger.Infof(pkg.TrainLogFormat+"vh name %s", vh.Name)
 
-		for _,r := range vh.Routers {
+		for _, r := range vh.Routers {
 			for _, hp := range r.Route.HashPolicy {
-				if hpp, ok := hp.(*types.LBHeaderMaglevInfo); ok {
-					log.DefaultLogger.Infof(pkg.TrainLogFormat+"header key %s", hpp.Key)
-
-					return hpp
+				if hp.Header != nil {
+					return hp.Header
 				}
-				if hpp, ok := hp.(*types.LBHttpCookieMaglevInfo); ok {
-					log.DefaultLogger.Infof(pkg.TrainLogFormat+"cookie path %s", hpp.Path)
-
-					return hpp
+				if hp.HttpCookie != nil {
+					return hp.HttpCookie
 				}
-				if hpp, ok := hp.(*types.LBSourceIPMaglevInfo); ok {
-					log.DefaultLogger.Infof(pkg.TrainLogFormat+"source ip")
-
-					return hpp
+				if hp.SourceIP != nil {
+					return hp.SourceIP
 				}
+				//if hpp, ok := hp.(*types.LBHeaderMaglevInfo); ok {
+				//	log.DefaultLogger.Infof(pkg.TrainLogFormat+"header key %s", hpp.Key)
+				//
+				//	return hpp
+				//}
+				//if hpp, ok := hp.(*types.LBHttpCookieMaglevInfo); ok {
+				//	log.DefaultLogger.Infof(pkg.TrainLogFormat+"cookie path %s", hpp.Path)
+				//
+				//	return hpp
+				//}
+				//if hpp, ok := hp.(*types.LBSourceIPMaglevInfo); ok {
+				//	log.DefaultLogger.Infof(pkg.TrainLogFormat+"source ip")
+				//
+				//	return hpp
+				//}
 
 			}
 		}

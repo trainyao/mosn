@@ -19,7 +19,6 @@ package conv
 
 import (
 	"fmt"
-	"mosn.io/mosn/pkg/types"
 	"net"
 	"strings"
 	"time"
@@ -160,7 +159,6 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			ClusterType:    convertClusterType(xdsCluster.GetType()),
 			LbType:         convertLbPolicy(xdsCluster.GetLbPolicy()),
 			LBSubSetConfig: convertLbSubSetConfig(xdsCluster.GetLbSubsetConfig()),
-			//LBMaglevConfig:       convertLbMaglevConfig(xdsCluster),
 			MaxRequestPerConn:    xdsCluster.GetMaxRequestsPerConnection().GetValue(),
 			ConnBufferLimitBytes: xdsCluster.GetPerConnectionBufferLimitBytes().GetValue(),
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
@@ -906,29 +904,37 @@ func convertWeightedClusters(xdsWeightedClusters *xdsroute.WeightedCluster) []v2
 	return weightedClusters
 }
 
-func convertHashPolicy(hashPolicy []*xdsroute.RouteAction_HashPolicy) []api.ConsistentHashCriteria {
-	hpReturn := make([]api.ConsistentHashCriteria, 0, len(hashPolicy))
+func convertHashPolicy(hashPolicy []*xdsroute.RouteAction_HashPolicy) []v2.HashPolicy {
+	hpReturn := make([]v2.HashPolicy, 0, len(hashPolicy))
 	for _, p := range hashPolicy {
-		if headerKey := p.GetHeader(); headerKey != nil {
-			hpReturn = append(hpReturn, &types.LBHeaderMaglevInfo{
-				Key: headerKey.HeaderName,
+		if header := p.GetHeader(); header != nil {
+			hpReturn = append(hpReturn, v2.HashPolicy{
+				Header: &v2.HeaderHashPolicy{
+					Key: header.HeaderName,
+				},
 			})
 
 			continue
 		}
 
 		if cookieConfig := p.GetCookie(); cookieConfig != nil {
-			hpReturn = append(hpReturn, &types.LBHttpCookieMaglevInfo{
-				Name: cookieConfig.Name,
-				Path: cookieConfig.Path,
-				TTL:  convertTimeDurPoint2TimeDur(cookieConfig.Ttl),
+			hpReturn = append(hpReturn, v2.HashPolicy{
+				HttpCookie: &v2.HttpCookieHashPolicy{
+					Name: cookieConfig.Name,
+					Path: cookieConfig.Path,
+					TTL: api.DurationConfig{
+						convertTimeDurPoint2TimeDur(cookieConfig.Ttl),
+					},
+				},
 			})
 
 			continue
 		}
 
 		if ip := p.GetConnectionProperties(); ip != nil {
-			hpReturn = append(hpReturn, &types.LBSourceIPMaglevInfo{})
+			hpReturn = append(hpReturn, v2.HashPolicy{
+				SourceIP: &v2.SourceIPHashPolicy{},
+			})
 
 			continue
 		}

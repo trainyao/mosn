@@ -46,5 +46,4 @@ const (
 	PATH ProtocolResourceName = "path"
 	URI  ProtocolResourceName = "uri"
 	ARG  ProtocolResourceName = "arg"
-	IP   ProtocolResourceName = "ip"
 )

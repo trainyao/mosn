@@ -44,7 +44,7 @@ func RegisterProtocolResource(protocol types.ProtocolName, resource api.Protocol
 		return errors.New("protocol resource already exists, name: " + pr)
 	}
 
-	protocolVar[pr] = varname
+	protocolVar[pr] = fmt.Sprintf("%s_%s", protocol, varname)
 
 	return nil
 }
@@ -64,7 +64,8 @@ func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, dat
 	if v, ok := protocolVar[convert(p, name)]; ok {
 		fmt.Printf(pkg.TrainLogFormat+"v %s", v)
 		fmt.Printf(pkg.TrainLogFormat+"d %s", data[0])
-		return GetVariableValue(ctx, v, data[0])
+		//return GetVariableValue(ctx, fmt.Sprintf("%s_%s", p, v), data[0])
+		return GetVariableValue(ctx, v, fmt.Sprintf("%s_%s", p, data[0]))
 	} else {
 		return "", errors.New(errUnregisterProtocolResource + string(p))
 	}

@@ -13,7 +13,6 @@ type Tree struct {
 	rangeEnd   map[int]uint64
 	leafCount  int
 	updateFunc SegmentTreeUpdateFunc
-	// go-routine for update
 	updateMux     sync.Mutex
 }
 

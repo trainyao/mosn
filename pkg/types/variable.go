@@ -50,6 +50,7 @@ const (
 // [Protocol]: common
 const (
 	VarProtocolRequestHeader = "request_header_"
+	VarProtocolHttpCookie = "http_cookie_"
 )
 
 // [Protocol]: http
@@ -62,5 +63,12 @@ const (
 
 	//VarPrefixHttpHeader = "http_header_"
 	VarPrefixHttpArg    = "http_arg_"
-	VarPrefixHttpCookie = "http_cookie_"
+	VarPrefixHttpHeader = "Http1_request_header_"
+	VarPrefixHttpCookie = "Http1_http_cookie_"
+)
+
+// [Protocol]: http2
+const (
+	VarPrefixHttp2Header = "Http2_request_header_"
+	VarPrefixHttp2Cookie = "Http2_http_cookie_"
 )

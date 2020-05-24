@@ -41,7 +41,15 @@ todo
 [x]maglev库性能分析
 [x]host down 选择segmenttree 返回临近节点
 [x]不拼接, 直接使用单个hash因子
-[ ]mosn 原生配置调通
+[x]mosn 原生配置调通
 [ ]http2 cookie 逻辑
 [ ]mgv info not match, prevent returning nil host pkg/upstream/cluster/loadbalancer.go:215 when choosing host
 [ ]单元测试
+    [x] json -> clusterSnapshot(how to get clustersnapshot?)
+    [ ] TODO Test_routeActionMarshal
+    [x] xds -> clusterSnapshot
+    [x]clusterSnapshot -> mgvlb
+    [x]header cookie ip -> mgvlb
+        [ ]http1 -> header cookie
+        [ ]http2 -> header cookie
+    [x]fallback
