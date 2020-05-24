@@ -57,8 +57,7 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy) Proxy {
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		requestInfo:    network.NewRequestInfo(),
 		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
-		// TODO train set TCP protocol for load balance
-		ctx: ctx,
+		ctx:            ctx,
 	}
 
 	p.upstreamCallbacks = &upstreamCallbacks{

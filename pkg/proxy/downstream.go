@@ -128,7 +128,6 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	// save downstream protocol
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proxy.serverStreamConn.Protocol())
-	log.DefaultLogger.Infof("[train] setting %s", proxy.serverStreamConn.Protocol())
 
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
@@ -1315,11 +1314,8 @@ func (s *downStream) MetadataMatchCriteria() api.MetadataMatchCriteria {
 }
 
 func (s *downStream) ConsistentHashCriteria() api.ConsistentHashCriteria {
-	//s.proxy.routersWrapper.GetRouters()
 	c := s.proxy.routersWrapper.GetRoutersConfig()
 	for _, vh := range c.VirtualHosts {
-		log.DefaultLogger.Infof(pkg.TrainLogFormat+"vh name %s", vh.Name)
-
 		for _, r := range vh.Routers {
 			for _, hp := range r.Route.HashPolicy {
 				if hp.Header != nil {
@@ -1331,31 +1327,9 @@ func (s *downStream) ConsistentHashCriteria() api.ConsistentHashCriteria {
 				if hp.SourceIP != nil {
 					return hp.SourceIP
 				}
-				//if hpp, ok := hp.(*types.LBHeaderMaglevInfo); ok {
-				//	log.DefaultLogger.Infof(pkg.TrainLogFormat+"header key %s", hpp.Key)
-				//
-				//	return hpp
-				//}
-				//if hpp, ok := hp.(*types.LBHttpCookieMaglevInfo); ok {
-				//	log.DefaultLogger.Infof(pkg.TrainLogFormat+"cookie path %s", hpp.Path)
-				//
-				//	return hpp
-				//}
-				//if hpp, ok := hp.(*types.LBSourceIPMaglevInfo); ok {
-				//	log.DefaultLogger.Infof(pkg.TrainLogFormat+"source ip")
-				//
-				//	return hpp
-				//}
-
 			}
 		}
 	}
-
-	//s.proxy.routersWrapper
-	//if nil != s.requestInfo.RouteEntry() {
-	//	return s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
-	//}
-
 	return nil
 }
 

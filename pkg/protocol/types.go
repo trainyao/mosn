@@ -24,7 +24,6 @@ import (
 // ProtocolName type definition
 const (
 	Auto      api.Protocol = "Auto"
-	TCP       api.Protocol = "TCP"
 	SofaRPC   api.Protocol = "SofaRpc"
 	HTTP1     api.Protocol = "Http1"
 	HTTP2     api.Protocol = "Http2"
@@ -45,7 +44,6 @@ const (
 	MosnHeaderQueryStringKey  = "x-mosn-querystring"
 	MosnHeaderMethod          = "x-mosn-method"
 	MosnOriginalHeaderPathKey = "x-mosn-original-path"
-	MosnHeaderTrain           = "x-mosn-train"
 )
 
 // Hseader with special meaning in istio

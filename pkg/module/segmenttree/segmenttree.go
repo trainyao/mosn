@@ -99,8 +99,6 @@ func build(nodes []Node, updateFunc SegmentTreeUpdateFunc) ([]interface{}, map[i
 
 	n := 2*count - 1
 	for {
-		// [0- 23 45 67 89][1011-1213 1415 1617 1819]
-		//
 		leftIndex := n - 1
 		rightIndex := n
 		rootIndex := leftIndex / 2
@@ -115,31 +113,6 @@ func build(nodes []Node, updateFunc SegmentTreeUpdateFunc) ([]interface{}, map[i
 		if rangeEnd[rightIndex] > rangeEnd[leftIndex] {
 			rangeEnd[rootIndex] = rangeEnd[rightIndex]
 		}
-
-		//left := &Node{
-		//	Value:      data[leftIndex],
-		//	index:      leftIndex,
-		//	RangeStart: RangeStart[leftIndex],
-		//	RangeEnd:   RangeEnd[leftIndex],
-		//}
-		//right := &Node{
-		//	Value:      data[rightIndex],
-		//	index:      rightIndex,
-		//	RangeStart: RangeStart[rightIndex],
-		//	RangeEnd:   RangeEnd[rightIndex],
-		//}
-		//root := &Node{
-		//	Value:      data[rootIndex],
-		//	index:      rootIndex,
-		//	RangeStart: RangeStart[rootIndex],
-		//	RangeEnd:   RangeEnd[rootIndex],
-		//}
-		//
-		//updateFunc(root, left, right)
-		//
-		//data[rootIndex] = root.Value
-		//RangeStart[rootIndex] = root.RangeStart
-		//RangeEnd[rootIndex] = root.RangeEnd
 
 		n -= 2
 
