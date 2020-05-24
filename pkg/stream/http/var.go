@@ -31,12 +31,10 @@ const (
 	VarRequestMethod = "http_request_method"
 	VarRequestLength = "http_request_length"
 
-	headerPrefix = "http_header_"
-	headerIndex  = len(headerPrefix)
-	argPrefix    = "http_arg_"
-	argIndex     = len(argPrefix)
-	cookiePrefix = "http_cookie_"
-	cookieIndex  = len(cookiePrefix)
+	headerIndex = len(types.VarPrefixHttpHeader)
+	argPrefix   = "http_arg_"
+	argIndex    = len(argPrefix)
+	cookieIndex = len(types.VarPrefixHttpCookie)
 )
 
 var (
@@ -49,9 +47,9 @@ var (
 	}
 
 	prefixVariables = []variable.Variable{
-		variable.NewBasicVariable(headerPrefix, nil, httpHeaderGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpHeader, nil, httpHeaderGetter, nil, 0),
 		variable.NewBasicVariable(argPrefix, nil, httpArgGetter, nil, 0),
-		variable.NewBasicVariable(cookiePrefix, nil, httpCookieGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpCookie, nil, httpCookieGetter, nil, 0),
 	}
 )
 
@@ -70,6 +68,8 @@ func init() {
 	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarHttpRequestPath)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarHttpRequestUri)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarHttpRequestArg)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.COOKIE, types.VarProtocolHttpCookie)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.HEADER, types.VarProtocolRequestHeader)
 }
 
 func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {

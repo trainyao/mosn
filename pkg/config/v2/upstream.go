@@ -67,6 +67,7 @@ type LbType string
 const (
 	LB_RANDOM     LbType = "LB_RANDOM"
 	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
+	LB_MAGLEV     LbType = "LB_MAGLEV"
 )
 
 // Cluster represents a cluster's information

@@ -19,7 +19,6 @@ package conv
 
 import (
 	"fmt"
-
 	"net"
 	"strings"
 	"time"
@@ -838,6 +837,7 @@ func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 			ClusterName:      xdsRouteAction.GetCluster(),
 			ClusterHeader:    xdsRouteAction.GetClusterHeader(),
 			WeightedClusters: convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
+			HashPolicy:       convertHashPolicy(xdsRouteAction.GetHashPolicy()),
 			RetryPolicy:      convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
 			PrefixRewrite:    xdsRouteAction.GetPrefixRewrite(),
 			HostRewrite:      xdsRouteAction.GetHostRewrite(),
@@ -894,6 +894,45 @@ func convertWeightedClusters(xdsWeightedClusters *xdsroute.WeightedCluster) []v2
 		weightedClusters = append(weightedClusters, weightedCluster)
 	}
 	return weightedClusters
+}
+
+func convertHashPolicy(hashPolicy []*xdsroute.RouteAction_HashPolicy) []v2.HashPolicy {
+	hpReturn := make([]v2.HashPolicy, 0, len(hashPolicy))
+	for _, p := range hashPolicy {
+		if header := p.GetHeader(); header != nil {
+			hpReturn = append(hpReturn, v2.HashPolicy{
+				Header: &v2.HeaderHashPolicy{
+					Key: header.HeaderName,
+				},
+			})
+
+			continue
+		}
+
+		if cookieConfig := p.GetCookie(); cookieConfig != nil {
+			hpReturn = append(hpReturn, v2.HashPolicy{
+				HttpCookie: &v2.HttpCookieHashPolicy{
+					Name: cookieConfig.Name,
+					Path: cookieConfig.Path,
+					TTL: api.DurationConfig{
+						convertTimeDurPoint2TimeDur(cookieConfig.Ttl),
+					},
+				},
+			})
+
+			continue
+		}
+
+		if ip := p.GetConnectionProperties(); ip != nil {
+			hpReturn = append(hpReturn, v2.HashPolicy{
+				SourceIP: &v2.SourceIPHashPolicy{},
+			})
+
+			continue
+		}
+	}
+
+	return hpReturn
 }
 
 func convertWeightedCluster(xdsWeightedCluster *xdsroute.WeightedCluster_ClusterWeight) v2.ClusterWeight {
@@ -997,11 +1036,13 @@ func convertLbPolicy(xdsLbPolicy xdsapi.Cluster_LbPolicy) v2.LbType {
 	case xdsapi.Cluster_ROUND_ROBIN:
 		return v2.LB_ROUNDROBIN
 	case xdsapi.Cluster_LEAST_REQUEST:
-	case xdsapi.Cluster_RING_HASH:
 	case xdsapi.Cluster_RANDOM:
 		return v2.LB_RANDOM
 	case xdsapi.Cluster_ORIGINAL_DST_LB:
 	case xdsapi.Cluster_MAGLEV:
+		return v2.LB_MAGLEV
+	case xdsapi.Cluster_RING_HASH:
+		return v2.LB_MAGLEV
 	}
 	//log.DefaultLogger.Fatalf("unsupported lb policy: %s, exchange to LB_RANDOM", xdsLbPolicy.String())
 	return v2.LB_RANDOM
