@@ -37,3 +37,13 @@ type HostInfo interface {
 
 	// TODO: add deploy locality
 }
+
+type ProtocolResourceName string
+
+const (
+	HEADER ProtocolResourceName = "header"
+	COOKIE ProtocolResourceName = "cookie"
+	PATH   ProtocolResourceName = "path"
+	URI    ProtocolResourceName = "uri"
+	ARG    ProtocolResourceName = "arg"
+)
