@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"time"
 
+	"github.com/perlin-network/life/exec"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/plugin"
@@ -42,14 +45,41 @@ func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFil
 }
 
 type WasmFilter struct {
+	vm  *exec.VirtualMachine
 	client  *plugin.Client
 	handler api.StreamReceiverFilterHandler
 }
 
 func NewWasmFilter(ctx context.Context, client *plugin.Client) *WasmFilter {
+	//input, err := ioutil.ReadFile("./filter_main.wasm.bck")
+	input, err := ioutil.ReadFile("./filter_main.wasm")
+	//input, err := ioutil.ReadFile("./fibonacci.wasm")
+	if err != nil {
+		panic(err)
+	}
+
+	vm, err := exec.NewVirtualMachine(input, exec.VMConfig{}, &exec.NopResolver{}, nil)
+	if err != nil {
+		panic(err)
+	}
+
 	return &WasmFilter{
+		vm: vm,
 		client: client,
 	}
+}
+
+func (f *WasmFilter) test() {
+	e, found := f.vm.GetFunctionExport("fff")
+	if !found {
+		panic(fmt.Errorf("not found"))
+	}
+
+	v, err := f.vm.Run(e)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(v)
 }
 
 func (f *WasmFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {

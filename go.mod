@@ -11,7 +11,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/gogo/googleapis v1.3.2 // indirect
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.3.3
+	github.com/golang/protobuf v1.4.2
 	github.com/hashicorp/go-plugin v1.0.1
 	github.com/json-iterator/go v1.1.8
 	github.com/juju/errors v0.0.0-20190207033735-e65537c515d7
@@ -23,6 +23,7 @@ require (
 	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5 // indirect
+	github.com/perlin-network/life v0.0.0-20191203030451-05c0e0f7eaea
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
@@ -30,13 +31,16 @@ require (
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/stretchr/testify v1.5.1
+	github.com/tinygo-org/tinygo v0.13.1 // indirect
 	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v1.2.0
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
-	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+	golang.org/x/net v0.0.0-20200528225125-3c3fba18258b
+	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
+	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/grpc v1.28.0
+	google.golang.org/protobuf v1.24.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	mosn.io/api v0.0.0-20200416082846-2e7ce9a85557
